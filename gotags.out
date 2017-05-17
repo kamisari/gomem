@@ -1,0 +1,35 @@
+!_TAG_FILE_FORMAT	2
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted/
+!_TAG_PROGRAM_AUTHOR	Joel Stemmer	/stemmertech@gmail.com/
+!_TAG_PROGRAM_NAME	gotags
+!_TAG_PROGRAM_URL	https://github.com/jstemmer/gotags
+!_TAG_PROGRAM_VERSION	1.4.1	/go1.8.1/
+AddGomem	./gomem.go	119;"	m	access:public	ctype:Gomems	line:119	signature:(g *Gomem)	type:error
+Content	./gomem.go	16;"	w	access:public	ctype:Gomem	line:16	type:string
+ErrFileExists	./gomem.go	29;"	v	access:public	line:29
+GetDir	./gomem.go	161;"	m	access:public	ctype:Gomems	line:161	signature:()	type:string
+Gmap	./gomem.go	24;"	w	access:public	ctype:Gomems	line:24	type:map[string]*Gomem
+Gomem	./gomem.go	14;"	t	access:public	line:14	type:struct
+Gomems	./gomem.go	23;"	t	access:public	line:23	type:struct
+GomemsNew	./gomem.go	103;"	f	access:public	ctype:Gomems	line:103	signature:()	type:*Gomems, error
+IncludeJSON	./gomem.go	132;"	m	access:public	ctype:Gomems	line:132	signature:()	type:error
+IsOverride	./gomem.go	51;"	m	access:public	ctype:Gomem	line:51	signature:()	type:bool
+IsValidFilePath	./gomem.go	58;"	m	access:public	ctype:Gomem	line:58	signature:()	type:error
+ModOverride	./gomem.go	46;"	m	access:public	ctype:Gomem	line:46	signature:(b bool)
+New	./gomem.go	38;"	f	access:public	ctype:Gomem	line:38	signature:(fpath string, override bool)	type:*Gomem, error
+ReadFile	./gomem.go	71;"	m	access:public	ctype:Gomem	line:71	signature:()	type:error
+Title	./gomem.go	15;"	w	access:public	ctype:Gomem	line:15	type:string
+WriteFile	./gomem.go	84;"	m	access:public	ctype:Gomem	line:84	signature:()	type:error
+WritePerm	./gomem.go	33;"	v	access:public	line:33
+base	./gomem.go	18;"	w	access:private	ctype:Gomem	line:18	type:string
+dir	./gomem.go	25;"	w	access:private	ctype:Gomems	line:25	type:string
+encoding/json	./gomem.go	4;"	i	line:4
+errors	./gomem.go	5;"	i	line:5
+fmt	./gomem.go	6;"	i	line:6
+getBaseJSON	./gomem.go	166;"	f	access:private	line:166	signature:(dir string)	type:[]string, error
+gomem	./gomem.go	1;"	p	line:1
+io/ioutil	./gomem.go	7;"	i	line:7
+os	./gomem.go	8;"	i	line:8
+override	./gomem.go	19;"	w	access:private	ctype:Gomem	line:19	type:bool
+path/filepath	./gomem.go	9;"	i	line:9
+strings	./gomem.go	10;"	i	line:10
