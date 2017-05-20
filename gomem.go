@@ -10,51 +10,45 @@ import (
 	"strings"
 )
 
-// Gomem JSON structure
-type Gomem struct {
+type gomemJSON struct{
 	Title   string `json:"title"`
 	Content string `json:"content"`
+}
 
+// Gomem JSON structure
+type Gomem struct {
+	JSON gomemJSON
+	Override bool
 	base     string
-	override bool
 }
 
 // Gomems map of Gomem and data directory
 type Gomems struct {
 	Gmap map[string]*Gomem // key: base(filepath)
-	dir  string // reconsider base directory
+	dir  string            // reconsider export
 }
 
 // ErrFileExists exists error
 var ErrFileExists = errors.New("file exists, cannot override")
 
 // WritePerm if need then modify
+// This use *Gomem.WriteFile
 // Example: gomem.WritePerm = os.FileMode(0666)
 var WritePerm = os.FileMode(0600)
 
-// New return *Gomem init filepath and override flag
-// if fpath is exists and write is flase then return error
+// New return *Gomem
+// fpath is modify to base name
 // accepted filename is "*.json" only
 func New(fpath string, override bool) (*Gomem, error) {
 	if !strings.HasSuffix(fpath, ".json") {
-		return nil, fmt.Errorf("invalid filename:%s require filename is *.json", fpath)
+		return nil, fmt.Errorf("New: invalid filename:%s require filename is *.json", fpath)
 	}
-	return &Gomem{base: filepath.Base(fpath), override: override}, nil
-}
-
-// ModOverride is modify override flag
-func (g *Gomem) ModOverride(b bool) {
-	g.override = b
-}
-
-// IsOverride return override boolean
-func (g *Gomem) IsOverride() bool {
-	return g.override
+	return &Gomem{base: filepath.Base(fpath), Override: override}, nil
 }
 
 // IsValidFilePath if invalid then return error
 // verification file path
-// for write function
+// for *Gomem.WriteFile
 func (g *Gomem) IsValidFilePath() error {
 	if !strings.HasSuffix(g.base, ".json") {
 		return fmt.Errorf("*Gomem.IsValidFilePath:%s: require file name *.json", g.base)
@@ -64,7 +58,7 @@ func (g *Gomem) IsValidFilePath() error {
 	} else if err == nil && info.Mode().IsRegular() {
 		return nil
 	}
-	return fmt.Errorf("*Gomem.IsValidFilePath: invalid filename:%s", g.base)
+	return fmt.Errorf("*Gomem.IsValidFilePath: invalid filename maybe is not regular files:%s", g.base)
 }
 
 // ReadFile load from g.base
@@ -73,7 +67,7 @@ func (g *Gomem) ReadFile() error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(b, g)
+	err = json.Unmarshal(b, &g.JSON)
 	if err != nil {
 		return err
 	}
@@ -86,10 +80,10 @@ func (g *Gomem) WriteFile() error {
 		return err
 	}
 	// reconsider dupl check
-	if _, err := os.Stat(g.base); err == nil && g.IsOverride() != true {
+	if _, err := os.Stat(g.base); err == nil && g.Override != true {
 		return ErrFileExists
 	}
-	b, err := json.MarshalIndent(g, "", "  ")
+	b, err := json.MarshalIndent(&g.JSON, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -99,7 +93,7 @@ func (g *Gomem) WriteFile() error {
 	return nil
 }
 
-// GomemsNew read from dir return map for Gomem
+// GomemsNew read from pwd return map for Gomem
 func GomemsNew() (*Gomems, error) {
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -118,7 +112,7 @@ func GomemsNew() (*Gomems, error) {
 // AddGomem add to gs.Gmap
 func (gs *Gomems) AddGomem(g *Gomem) error {
 	if gs.Gmap == nil {
-		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap == nil")
+		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap is nil")
 	}
 	if _, ok := gs.Gmap[g.base]; ok {
 		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap[%s] is exists", g.base)
@@ -133,9 +127,15 @@ func (gs *Gomems) IncludeJSON() error {
 	if gs.Gmap == nil {
 		return fmt.Errorf("*Gomems.IncludeJSON: Gmap is nil")
 	}
-	bases, err := getBaseJSON(gs.dir)
+	infos, err := ioutil.ReadDir(gs.dir)
 	if err != nil {
 		return err
+	}
+	var bases []string
+	for _, info := range infos {
+		if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
+			bases = append(bases, info.Name())
+		}
 	}
 	for _, x := range bases {
 		if g, ok := gs.Gmap[x]; ok {
@@ -144,7 +144,6 @@ func (gs *Gomems) IncludeJSON() error {
 			}
 			continue
 		}
-		// TODO: reconsider boolean
 		g, err := New(x, false)
 		if err != nil {
 			return err
@@ -158,21 +157,7 @@ func (gs *Gomems) IncludeJSON() error {
 }
 
 // GetDir exported gs.dir
+// TODO: reconsider remove and then exchange gs.dir to gs.Dir
 func (gs *Gomems) GetDir() string {
 	return gs.dir
-}
-
-// return json files base name in dir
-func getBaseJSON(dir string) ([]string, error) {
-	infos, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	var str []string
-	for _, info := range infos {
-		if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
-			str = append(str, info.Name())
-		}
-	}
-	return str, nil
 }

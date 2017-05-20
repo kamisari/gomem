@@ -21,7 +21,6 @@ type option struct {
 	subcmd  string
 	subarsg []string
 }
-
 var opt option
 
 func (opt *option) init() {
@@ -90,12 +89,45 @@ func confirm(msg string) bool {
 	return false
 }
 
+// state
+func isValidGS(v interface{}) *gomem.Gomems {
+	gs, ok := v.(*gomem.Gomems)
+	if !ok {
+		panic("isValidGS: invalid interface v is not Gomems")
+	}
+	return gs
+}
+
 // mock
 func interactive(r io.Reader, w io.Writer, gs *gomem.Gomems) error {
+	if gs == nil || gs.Gmap == nil {
+		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
+	}
 	fmt.Fprintln(w, "debug: interactive")
 	fmt.Fprintf(w, "debug:gs:%v\ndebug:opt:%v\n", gs, opt)
+	/// commands TODO: remove
+	show := func(v interface{}) (string, error) {
+		gs := isValidGS(v)
+		var str string
+		for key, v := range gs.Gmap {
+			str += fmt.Sprintln("-----", key, "-----")
+			str += fmt.Sprintf("[%s]\n", v.JSON.Title)
+			str += fmt.Sprintf("%s\n", v.JSON.Content)
+		}
+		return str, nil
+	}
+	ls := func(v interface{}) (string, error) {
+		gs := isValidGS(v)
+		var str string
+		for key := range gs.Gmap {
+			str += fmt.Sprintln(key)
+		}
+		return str, nil
+	}
 
 	sub := gomem.SubNewWithBase()
+	sub.Addf("show",gs,  show, "show Gmap")
+	sub.Addf("ls", gs, ls, "ls Gmap keys")
 	// TODO: many addf
 	//sub.Addf()
 	if err := sub.Repl(r, w, "gomem:>"); err != nil {

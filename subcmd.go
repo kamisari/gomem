@@ -8,8 +8,10 @@ import (
 	"strings"
 )
 
+// TODO: maybe deprecated interface{}
 type subcmd struct {
-	f       func() (string, error)
+	f       func(interface{}) (string, error)
+	value   interface{}
 	helpmsg string
 }
 
@@ -38,7 +40,7 @@ func (sub SubCommands) Repl(r io.Reader, w io.Writer, prefix string) error {
 			fmt.Fprintf(w, "invalid subcommand: %q\n", sc.Text())
 			continue
 		}
-		result, err := cmd.f()
+		result, err := cmd.f(cmd.value)
 		if err != nil {
 			switch err {
 			case ErrValidExit:
@@ -53,9 +55,10 @@ func (sub SubCommands) Repl(r io.Reader, w io.Writer, prefix string) error {
 }
 
 // Addf append function
-func (sub SubCommands) Addf(key string, fnc func() (string, error), help string) {
+func (sub SubCommands) Addf(key string, v interface{}, fnc func(interface{}) (string, error), help string) {
 	sub[key] = subcmd{
 		f:       fnc,
+		value:   v,
 		helpmsg: help,
 	}
 }
@@ -64,21 +67,21 @@ func (sub SubCommands) Addf(key string, fnc func() (string, error), help string)
 // for "exit" and "help"
 func SubNewWithBase() SubCommands {
 	sub := make(SubCommands)
-	sub.Addf("exit", Exit, "call exit")
-	sub.Addf("help", sub.Help, "show subcommands")
+	sub.Addf("exit", nil, Exit, "call exit")
+	sub.Addf("help", nil, sub.Help, "show subcommands")
 	return sub
 }
 
 /* base commmands */
-// RECONSIDER: moved extend file
+// RECONSIDER: move to extended files
 
 // Exit Base Commands for valid exit
-func Exit() (string, error) {
+func Exit(v interface{}) (string, error) {
 	return "", ErrValidExit
 }
 
 // Help Base Commands for show help message
-func (sub SubCommands) Help() (string, error) {
+func (sub SubCommands) Help(v interface{}) (string, error) {
 	str := fmt.Sprintln("list commands:")
 	for key, v := range sub {
 		str += fmt.Sprintf("\t%s\n", key)
