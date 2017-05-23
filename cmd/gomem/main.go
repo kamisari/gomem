@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -21,6 +20,7 @@ type option struct {
 	subcmd  string
 	subarsg []string
 }
+
 var opt option
 
 func (opt *option) init() {
@@ -51,91 +51,6 @@ func init() {
 	opt.init()
 }
 
-// TODO: impl: interactive(io.Reader, io.Writer, *gomem.Gomems) error
-//           : run(io.Writer, *gomem.Gomems, option) error
-
-// LIST: for interactive, list commands
-//     : cd, ls, new, show, include, state
-
-/// for interactive
-// simple read
-func read(msg string) string {
-	fmt.Print(msg)
-	sc := bufio.NewScanner(os.Stdin)
-	sc.Scan()
-	if sc.Err() != nil {
-		panic(sc.Err())
-	}
-	return sc.Text()
-}
-
-// simple confirm
-func confirm(msg string) bool {
-	fmt.Print(msg + " [yes:no]?>")
-	for sc, i := bufio.NewScanner(os.Stdin), 0; sc.Scan() && i < 2; i++ {
-		if sc.Err() != nil {
-			log.Fatal(sc.Err())
-		}
-		switch sc.Text() {
-		case "yes", "y":
-			return true
-		case "no", "n":
-			return false
-		default:
-			fmt.Println(sc.Text())
-			fmt.Print(msg + " [yes:no]?>")
-		}
-	}
-	return false
-}
-
-// state
-func isValidGS(v interface{}) *gomem.Gomems {
-	gs, ok := v.(*gomem.Gomems)
-	if !ok {
-		panic("isValidGS: invalid interface v is not Gomems")
-	}
-	return gs
-}
-
-// mock
-func interactive(r io.Reader, w io.Writer, gs *gomem.Gomems) error {
-	if gs == nil || gs.Gmap == nil {
-		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
-	}
-	fmt.Fprintln(w, "debug: interactive")
-	fmt.Fprintf(w, "debug:gs:%v\ndebug:opt:%v\n", gs, opt)
-	/// commands TODO: remove
-	show := func(v interface{}) (string, error) {
-		gs := isValidGS(v)
-		var str string
-		for key, v := range gs.Gmap {
-			str += fmt.Sprintln("-----", key, "-----")
-			str += fmt.Sprintf("[%s]\n", v.JSON.Title)
-			str += fmt.Sprintf("%s\n", v.JSON.Content)
-		}
-		return str, nil
-	}
-	ls := func(v interface{}) (string, error) {
-		gs := isValidGS(v)
-		var str string
-		for key := range gs.Gmap {
-			str += fmt.Sprintln(key)
-		}
-		return str, nil
-	}
-
-	sub := gomem.SubNewWithBase()
-	sub.Addf("show",gs,  show, "show Gmap")
-	sub.Addf("ls", gs, ls, "ls Gmap keys")
-	// TODO: many addf
-	//sub.Addf()
-	if err := sub.Repl(r, w, "gomem:>"); err != nil {
-		return err
-	}
-	return nil
-}
-
 // mock
 func run(w io.Writer, gs *gomem.Gomems, opt *option) error {
 	fmt.Fprintln(w, "debug: run")
@@ -156,7 +71,7 @@ func main() {
 	fmt.Println("debug:", gs)
 	fmt.Println("debug:", opt)
 	if opt.interactive {
-		if err := interactive(os.Stdin, os.Stdout, gs); err != nil {
+		if err := gomem.Interactive(os.Stdin, os.Stdout, "gomem:>", gs); err != nil {
 			log.Fatal(err)
 		}
 		return

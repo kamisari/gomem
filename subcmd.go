@@ -8,15 +8,17 @@ import (
 	"strings"
 )
 
-// TODO: maybe deprecated interface{}
 type subcmd struct {
-	f       func(interface{}) (string, error)
-	value   interface{}
+	f       func() (string, error)
 	helpmsg string
 }
 
 // SubCommands interp functions for Repl
-type SubCommands map[string]subcmd
+type SubCommands struct {
+	w   io.Writer
+	r   io.Reader
+	Map map[string]*subcmd
+}
 
 // ErrValidExit for valid exit, for Repl
 var ErrValidExit = errors.New("valid exit")
@@ -25,65 +27,67 @@ var ErrValidExit = errors.New("valid exit")
 // call function in SubCommands[string]
 // string is from os.Stdin
 // if return ErrValidExit then return nil
-func (sub SubCommands) Repl(r io.Reader, w io.Writer, prefix string) error {
-	sc := bufio.NewScanner(r)
+func (sub *SubCommands) Repl(prefix string) error {
+	sc := bufio.NewScanner(sub.r)
 	for {
-		fmt.Fprint(w, prefix)
+		fmt.Fprint(sub.w, prefix)
 		if !sc.Scan() {
 			return fmt.Errorf("fail sc.Scan")
 		}
 		if sc.Err() != nil {
 			return sc.Err()
 		}
-		cmd, ok := sub[strings.TrimSpace(sc.Text())]
+		cmd, ok := sub.Map[strings.TrimSpace(sc.Text())]
 		if !ok {
-			fmt.Fprintf(w, "invalid subcommand: %q\n", sc.Text())
+			fmt.Fprintf(sub.w, "invalid subcommand: %q\n", sc.Text())
 			continue
 		}
-		result, err := cmd.f(cmd.value)
+		result, err := cmd.f()
 		if err != nil {
 			switch err {
 			case ErrValidExit:
-				fmt.Fprint(w, result) // exit message
+				fmt.Fprintln(sub.w, result) // exit message
 				return nil
 			default:
 				return err
 			}
 		}
-		fmt.Fprint(w, result)
+		fmt.Fprintln(sub.w, result)
 	}
 }
 
 // Addf append function
-func (sub SubCommands) Addf(key string, v interface{}, fnc func(interface{}) (string, error), help string) {
-	sub[key] = subcmd{
+func (sub *SubCommands) Addf(key string, fnc func() (string, error), help string) {
+	sub.Map[key] = &subcmd{
 		f:       fnc,
-		value:   v,
 		helpmsg: help,
 	}
 }
 
 // SubNewWithBase return SubCommands with base commands
 // for "exit" and "help"
-func SubNewWithBase() SubCommands {
-	sub := make(SubCommands)
-	sub.Addf("exit", nil, Exit, "call exit")
-	sub.Addf("help", nil, sub.Help, "show subcommands")
+func SubNewWithBase(r io.Reader, w io.Writer) *SubCommands {
+	sub := &SubCommands{
+		Map: make(map[string]*subcmd),
+		r:   r,
+		w:   w,
+	}
+	sub.Addf("exit", Exit, "call exit")
+	sub.Addf("help", sub.Help, "show subcommands")
 	return sub
 }
 
-/* base commmands */
-// RECONSIDER: move to extended files
+/// base commmands
 
 // Exit Base Commands for valid exit
-func Exit(v interface{}) (string, error) {
+func Exit() (string, error) {
 	return "", ErrValidExit
 }
 
 // Help Base Commands for show help message
-func (sub SubCommands) Help(v interface{}) (string, error) {
+func (sub *SubCommands) Help() (string, error) {
 	str := fmt.Sprintln("list commands:")
-	for key, v := range sub {
+	for key, v := range sub.Map {
 		str += fmt.Sprintf("\t%s\n", key)
 		str += fmt.Sprintf("\t\t%s\n", v.helpmsg)
 	}

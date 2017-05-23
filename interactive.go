@@ -9,16 +9,18 @@ import (
 
 // for Read and confirm
 // accept exchange output and input
+// default: writer = os.Stdout
+//        : reader = os.Stdin
 var (
-	InterWriter io.Writer = os.Stdout
-	InterReader io.Reader = os.Stdin
+	igs         *Gomems
+	interWriter io.Writer = os.Stdout
+	interReader io.Reader = os.Stdin
 )
 
-/// for interactive
 // simple read
 func read(msg string) string {
 	fmt.Print(msg)
-	sc := bufio.NewScanner(InterReader)
+	sc := bufio.NewScanner(interReader)
 	sc.Scan()
 	if sc.Err() != nil {
 		panic(sc.Err())
@@ -28,8 +30,8 @@ func read(msg string) string {
 
 // simple confirm
 func confirm(msg string) bool {
-	fmt.Print(msg + " [yes:no]?>")
-	for sc, i := bufio.NewScanner(InterReader), 0; sc.Scan() && i < 2; i++ {
+	fmt.Fprint(interWriter, msg+" [yes:no]?>")
+	for sc, i := bufio.NewScanner(interReader), 0; sc.Scan() && i < 2; i++ {
 		if sc.Err() != nil {
 			panic(sc.Err)
 		}
@@ -39,62 +41,86 @@ func confirm(msg string) bool {
 		case "no", "n":
 			return false
 		default:
-			fmt.Fprintln(InterWriter, sc.Text())
-			fmt.Fprint(InterWriter, msg + " [yes:no]?>")
+			fmt.Fprintln(interWriter, sc.Text())
+			fmt.Fprint(interWriter, msg+" [yes:no]?>")
 		}
 	}
 	return false
 }
 
-// state
-func isValidGS(v interface{}) *Gomems {
-	gs, ok := v.(*Gomems)
-	if !ok {
-		panic("isValidGS: invalid interface v is not Gomems")
-	}
-	if gs == nil {
-		panic("isValidGS: uninitialized value")
-	}
-	return gs
-}
-
 /// commands
-
-func show(v interface{}) (string, error) {
-	gs := isValidGS(v)
+func show() (string, error) {
 	var str string
-	for key, v := range gs.Gmap {
+	for key, v := range igs.Gmap {
 		str += fmt.Sprintln("-----", key, "-----")
 		str += fmt.Sprintf("[%s]\n", v.JSON.Title)
 		str += fmt.Sprintf("%s\n", v.JSON.Content)
 	}
 	return str, nil
 }
-
-func ls(v interface{}) (string, error) {
-	gs := isValidGS(v)
+func ls() (string, error) {
 	var str string
-	for key := range gs.Gmap {
+	for key := range igs.Gmap {
 		str += fmt.Sprintln(key)
 	}
 	return str, nil
 }
+func newGomem() (string, error) {
+	fpath := read("filename:>")
+	flag := confirm("accept override")
+	g, err := New(fpath, flag)
+	if err != nil {
+		return err.Error(), nil
+	}
+	g.JSON = gJSON{
+		Title:   read("title:>"),
+		Content: read("content:>"),
+	}
+	if err := igs.AddGomem(g); err != nil {
+		return err.Error(), nil
+	}
+	return "new gomem included", nil
+}
+func writeAll() (string, error) {
+	b := confirm(fmt.Sprintf("write mems into %s", igs.dir))
+	var result string
+	if b {
+		for key, x := range igs.Gmap {
+			err := x.WriteFile()
+			result += fmt.Sprintln(key, err.Error())
+		}
+		return result, nil
+	}
+	return "", nil
+}
+func state() (string, error) {
+	var str string
+	str += fmt.Sprintln("gs.dir:", igs.dir)
+	for key, v := range igs.Gmap {
+		str += fmt.Sprintln("----------", key, "----------")
+		str += fmt.Sprintln("override:", v.Override)
+	}
+	return str, nil
+}
 
-// mock
-func Interactive(r io.Reader, w io.Writer, gs *Gomems) error {
+// Interactive make interactive session
+// this file export only this function
+func Interactive(r io.Reader, w io.Writer, prefix string, gs *Gomems) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
-	fmt.Fprintln(w, "debug: interactive")
-	fmt.Fprintf(w, "debug:gs:%v\ndebug:\n", gs)
-	/// commands TODO: remove
+	igs = gs
+	interReader = r
+	interWriter = w
 
-	sub := SubNewWithBase()
-	sub.Addf("show",gs,  show, "show Gmap")
-	sub.Addf("ls", gs, ls, "ls Gmap keys")
-	// TODO: many addf
-	//sub.Addf()
-	if err := sub.Repl(r, w, "gomem:>"); err != nil {
+	sub := SubNewWithBase(r, w)
+	sub.Addf("show", show, "show Gmap")
+	sub.Addf("ls", ls, "ls Gmap keys")
+	sub.Addf("new", newGomem, "new gomem")
+	sub.Addf("writeAll", writeAll, "write all data to gs.dir")
+	sub.Addf("state", state, "show state of gs")
+
+	if err := sub.Repl(prefix); err != nil {
 		return err
 	}
 	return nil
