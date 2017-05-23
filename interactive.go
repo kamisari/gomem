@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 )
+///bare test
 
 // for Read and confirm
 // accept exchange output and input
