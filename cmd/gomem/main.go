@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dory/gomem"
+	"github.com/kamisari/gomem"
 )
 
 type option struct {

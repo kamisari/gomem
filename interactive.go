@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 )
+
 ///bare test
 
 // for Read and confirm
@@ -68,8 +69,7 @@ func ls() (string, error) {
 }
 func newGomem() (string, error) {
 	fpath := read("filename:>")
-	flag := confirm("accept override")
-	g, err := New(fpath, flag)
+	g, err := New(fpath, true)
 	if err != nil {
 		return err.Error(), nil
 	}
@@ -87,8 +87,9 @@ func writeAll() (string, error) {
 	var result string
 	if b {
 		for key, x := range igs.Gmap {
-			err := x.WriteFile()
-			result += fmt.Sprintln(key, err.Error())
+			if err := x.WriteFile(); err != nil {
+				result += fmt.Sprintln(key, err.Error())
+			}
 		}
 		return result, nil
 	}
@@ -96,12 +97,27 @@ func writeAll() (string, error) {
 }
 func state() (string, error) {
 	var str string
-	str += fmt.Sprintln("gs.dir:", igs.dir)
+	str += fmt.Sprintln("igs.dir:", igs.dir)
 	for key, v := range igs.Gmap {
 		str += fmt.Sprintln("----------", key, "----------")
 		str += fmt.Sprintln("override:", v.Override)
 	}
 	return str, nil
+}
+func cd() (string, error) {
+	pwd := igs.dir
+	if err := os.Chdir(read("cd path:>")); err != nil {
+		return err.Error(), nil
+	}
+	tmpgs, err := GomemsNew()
+	if err != nil {
+		if err := os.Chdir(pwd); err != nil {
+			return "", err
+		}
+		return err.Error(), nil
+	}
+	igs = tmpgs
+	return fmt.Sprintln("changed directory to:", igs.dir), nil
 }
 
 // Interactive make interactive session
@@ -120,6 +136,7 @@ func Interactive(r io.Reader, w io.Writer, prefix string, gs *Gomems) error {
 	sub.Addf("new", newGomem, "new gomem")
 	sub.Addf("writeAll", writeAll, "write all data to gs.dir")
 	sub.Addf("state", state, "show state of gs")
+	sub.Addf("cd", cd, "change working directory")
 
 	if err := sub.Repl(prefix); err != nil {
 		return err

@@ -83,7 +83,7 @@ func (g *Gomem) WriteFile() error {
 	if _, err := os.Stat(g.base); err == nil && g.Override != true {
 		return ErrFileExists
 	}
-	b, err := json.MarshalIndent(&g.JSON, "", "  ")
+	b, err := json.MarshalIndent(g.JSON, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (gs *Gomems) IncludeJSON() error {
 			}
 			continue
 		}
-		g, err := New(x, false)
+		g, err := New(x, true)
 		if err != nil {
 			return err
 		}
