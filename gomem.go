@@ -10,14 +10,14 @@ import (
 	"strings"
 )
 
-type gJSON struct {
+type gomemJSON struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
 // Gomem JSON structure
 type Gomem struct {
-	JSON     gJSON
+	JSON     gomemJSON
 	Override bool
 	base     string
 }

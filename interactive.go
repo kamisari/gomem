@@ -73,10 +73,8 @@ func newGomem() (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	g.JSON = gJSON{
-		Title:   read("title:>"),
-		Content: read("content:>"),
-	}
+	g.JSON.Title = read("title:>")
+	g.JSON.Content = read("content:>")
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
