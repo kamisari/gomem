@@ -157,7 +157,6 @@ func (gs *Gomems) IncludeJSON() error {
 }
 
 // GetDir exported gs.dir
-// TODO: reconsider remove and then exchange gs.dir to gs.Dir
 func (gs *Gomems) GetDir() string {
 	return gs.dir
 }

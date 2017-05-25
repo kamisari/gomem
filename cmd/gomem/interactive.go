@@ -1,8 +1,9 @@
-package gomem
+package main
 
 import (
 	"bufio"
 	"fmt"
+	"github.com/kamisari/gomem"
 	"io"
 	"os"
 )
@@ -14,7 +15,7 @@ import (
 // default: writer = os.Stdout
 //        : reader = os.Stdin
 var (
-	igs         *Gomems
+	igs         *gomem.Gomems
 	interWriter io.Writer = os.Stdout
 	interReader io.Reader = os.Stdin
 )
@@ -69,7 +70,7 @@ func ls() (string, error) {
 }
 func newGomem() (string, error) {
 	fpath := read("filename:>")
-	g, err := New(fpath, true)
+	g, err := gomem.New(fpath, true)
 	if err != nil {
 		return err.Error(), nil
 	}
@@ -81,7 +82,7 @@ func newGomem() (string, error) {
 	return "new gomem included", nil
 }
 func writeAll() (string, error) {
-	b := confirm(fmt.Sprintf("write mems into %s", igs.dir))
+	b := confirm(fmt.Sprintf("write mems into %s", igs.GetDir()))
 	var result string
 	if b {
 		for key, x := range igs.Gmap {
@@ -95,7 +96,7 @@ func writeAll() (string, error) {
 }
 func state() (string, error) {
 	var str string
-	str += fmt.Sprintln("igs.dir:", igs.dir)
+	str += fmt.Sprintln("igs.dir:", igs.GetDir())
 	for key, v := range igs.Gmap {
 		str += fmt.Sprintln("----------", key, "----------")
 		str += fmt.Sprintln("override:", v.Override)
@@ -103,11 +104,11 @@ func state() (string, error) {
 	return str, nil
 }
 func cd() (string, error) {
-	pwd := igs.dir
+	pwd := igs.GetDir()
 	if err := os.Chdir(read("cd path:>")); err != nil {
 		return err.Error(), nil
 	}
-	tmpgs, err := GomemsNew()
+	tmpgs, err := gomem.GomemsNew()
 	if err != nil {
 		if err := os.Chdir(pwd); err != nil {
 			return "", err
@@ -115,12 +116,12 @@ func cd() (string, error) {
 		return err.Error(), nil
 	}
 	igs = tmpgs
-	return fmt.Sprintln("changed directory to:", igs.dir), nil
+	return fmt.Sprintln("changed directory to:", igs.GetDir()), nil
 }
 
 // Interactive make interactive session
 // this file export only this function
-func Interactive(r io.Reader, w io.Writer, prefix string, gs *Gomems) error {
+func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
@@ -128,7 +129,7 @@ func Interactive(r io.Reader, w io.Writer, prefix string, gs *Gomems) error {
 	interReader = r
 	interWriter = w
 
-	sub := SubNewWithBase(r, w)
+	sub := gomem.SubNewWithBase(r, w)
 	sub.Addf("show", show, "show Gmap")
 	sub.Addf("ls", ls, "ls Gmap keys")
 	sub.Addf("new", newGomem, "new gomem")

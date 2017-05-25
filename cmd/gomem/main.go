@@ -42,6 +42,9 @@ func (opt *option) init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := os.Chdir(opt.workdir); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {
@@ -60,18 +63,13 @@ func run(w io.Writer, gs *gomem.Gomems, opt *option) error {
 }
 
 func main() {
-	if err := os.Chdir(opt.workdir); err != nil {
-		log.Fatal(err)
-	}
 	gs, err := gomem.GomemsNew()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("debug:", gs)
-	fmt.Println("debug:", opt)
 	if opt.interactive {
-		if err := gomem.Interactive(os.Stdin, os.Stdout, "gomem:>", gs); err != nil {
+		if err := interactive(os.Stdin, os.Stdout, "gomem:>", gs); err != nil {
 			log.Fatal(err)
 		}
 		return
