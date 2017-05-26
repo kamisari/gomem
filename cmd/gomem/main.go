@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/kamisari/gomem"
@@ -41,6 +42,13 @@ func (opt *option) init() {
 	if opt.version {
 		fmt.Printf("version %s\n", version)
 		os.Exit(0)
+	}
+	if opt.workdir == "" {
+		u, err := user.Current()
+		if err != nil {
+			log.Fatal(err)
+		}
+		opt.workdir = filepath.Join(u.HomeDir, "dotfiles", "etc", "gomem")
 	}
 	var err error
 	opt.workdir, err = filepath.Abs(opt.workdir)

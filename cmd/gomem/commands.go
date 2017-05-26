@@ -6,6 +6,7 @@ import (
 	"github.com/kamisari/gomem"
 	"io"
 	"os"
+	"strings"
 )
 
 ///bare test
@@ -111,12 +112,25 @@ func cd() (string, error) {
 	tmpgs, err := gomem.GomemsNew()
 	if err != nil {
 		if err := os.Chdir(pwd); err != nil {
-			return "", err
+			return err.Error(), nil
 		}
 		return err.Error(), nil
 	}
 	igs = tmpgs
 	return fmt.Sprintln("changed directory to:", igs.GetDir()), nil
+}
+
+func la(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "invalid argument:" + s, nil
+	}
+	str := fmt.Sprintln(g.JSON.Title)
+	str += fmt.Sprintln(g.JSON.Content)
+	return str, nil
 }
 
 // Interactive make interactive session
@@ -136,6 +150,7 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) erro
 	sub.Addf("writeAll", writeAll, "write all data to gs.dir")
 	sub.Addf("state", state, "show state of gs")
 	sub.Addf("cd", cd, "change working directory")
+	sub.Addfa("la", la, "show title and content")
 
 	if err := sub.Repl(prefix); err != nil {
 		return err

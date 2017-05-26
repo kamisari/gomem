@@ -10,6 +10,7 @@ import (
 
 type subcmd struct {
 	f       func() (string, error)
+	fa      func(string) (string, error)
 	helpmsg string
 }
 
@@ -37,12 +38,23 @@ func (sub *SubCommands) Repl(prefix string) error {
 		if sc.Err() != nil {
 			return sc.Err()
 		}
-		cmd, ok := sub.Map[strings.TrimSpace(sc.Text())]
+		cmdline := strings.SplitN(strings.TrimSpace(sc.Text()), " ", 2)
+		cmd, ok := sub.Map[strings.TrimSpace(cmdline[0])]
 		if !ok {
 			fmt.Fprintf(sub.w, "invalid subcommand: %q\n", sc.Text())
 			continue
 		}
-		result, err := cmd.f()
+		var result string
+		var err error
+		switch {
+		case cmd.f != nil:
+			result, err = cmd.f()
+		case cmd.fa != nil && len(cmdline) == 2:
+			result, err = cmd.fa(strings.TrimSpace(cmdline[1]))
+		default:
+			fmt.Fprintf(sub.w, "invalid subcommand: argument: %q\n", cmdline)
+			continue
+		}
 		if err != nil {
 			switch err {
 			case ErrValidExit:
@@ -60,6 +72,14 @@ func (sub *SubCommands) Repl(prefix string) error {
 func (sub *SubCommands) Addf(key string, fnc func() (string, error), help string) {
 	sub.Map[key] = &subcmd{
 		f:       fnc,
+		helpmsg: help,
+	}
+}
+
+// Addfa append function with accept argument
+func (sub *SubCommands) Addfa(key string, fnc func(string) (string, error), help string) {
+	sub.Map[key] = &subcmd{
+		fa:      fnc,
 		helpmsg: help,
 	}
 }
