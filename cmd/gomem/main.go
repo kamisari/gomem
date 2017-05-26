@@ -10,6 +10,8 @@ import (
 	"github.com/kamisari/gomem"
 )
 
+const version = "0.0"
+
 type option struct {
 	version     bool
 	interactive bool
@@ -21,8 +23,6 @@ type option struct {
 }
 
 var opt option
-
-const version = "0.0"
 
 func (opt *option) init() {
 	flag.BoolVar(&opt.version, "version", false, "")
@@ -39,7 +39,8 @@ func (opt *option) init() {
 		log.Fatalf("invalid args: %q", flag.Args())
 	}
 	if opt.version {
-		fmt.Fprintf(os.Stderr, "version %s", version)
+		fmt.Printf("version %s\n", version)
+		os.Exit(0)
 	}
 	var err error
 	opt.workdir, err = filepath.Abs(opt.workdir)
