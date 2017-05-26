@@ -111,14 +111,20 @@ func GomemsNew() (*Gomems, error) {
 
 // AddGomem add to gs.Gmap
 func (gs *Gomems) AddGomem(g *Gomem) error {
-	if gs.Gmap == nil {
-		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap is nil")
-	}
 	if _, ok := gs.Gmap[g.base]; ok {
 		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap[%s] is exists", g.base)
 	}
 	gs.Gmap[g.base] = g
 	return nil
+}
+
+// GetAbs return filepath.Join(gs.dir+gs.Gmap[key].base)
+func (gs *Gomems) GetAbs(key string) (string, error) {
+	g, ok := gs.Gmap[key]
+	if ok {
+		return filepath.Join(gs.dir, g.base), nil
+	}
+	return "", fmt.Errorf("not found gs.Gmap[%s]", key)
 }
 
 // IncludeJSON include from Gomems.dir

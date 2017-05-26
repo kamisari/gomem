@@ -53,12 +53,12 @@ func confirm(msg string) bool {
 }
 
 /// commands
-func show() (string, error) {
+func la() (string, error) {
 	var str string
 	for key, v := range igs.Gmap {
 		str += fmt.Sprintln("-----", key, "-----")
-		str += fmt.Sprintf("[%s]\n", v.JSON.Title)
-		str += fmt.Sprintf("%s\n", v.JSON.Content)
+		str += fmt.Sprintln("[", v.JSON.Title, "]")
+		str += fmt.Sprintln(v.JSON.Content)
 	}
 	return str, nil
 }
@@ -72,6 +72,18 @@ func ls() (string, error) {
 func newGomem() (string, error) {
 	fpath := read("filename:>")
 	g, err := gomem.New(fpath, true)
+	if err != nil {
+		return err.Error(), nil
+	}
+	g.JSON.Title = read("title:>")
+	g.JSON.Content = read("content:>")
+	if err := igs.AddGomem(g); err != nil {
+		return err.Error(), nil
+	}
+	return "new gomem key:" + fpath, nil
+}
+func newGomemWithName(s string) (string, error) {
+	g, err := gomem.New(s, true)
 	if err != nil {
 		return err.Error(), nil
 	}
@@ -117,20 +129,34 @@ func cd() (string, error) {
 		return err.Error(), nil
 	}
 	igs = tmpgs
-	return fmt.Sprintln("changed directory to:", igs.GetDir()), nil
+	return "changed directory to:" + igs.GetDir(), nil
 }
-
-func la(s string) (string, error) {
+func show(s string) (string, error) {
 	if !strings.HasSuffix(s, ".json") {
 		s = s + ".json"
 	}
 	g, ok := igs.Gmap[s]
 	if !ok {
-		return "invalid argument:" + s, nil
+		return "not found:" + s, nil
 	}
-	str := fmt.Sprintln(g.JSON.Title)
+	str := fmt.Sprintln("[", g.JSON.Title, "]")
 	str += fmt.Sprintln(g.JSON.Content)
 	return str, nil
+}
+func remove(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	fullpath, err := igs.GetAbs(s)
+	if err != nil {
+		return err.Error(), nil
+	}
+	err = os.Remove(fullpath)
+	if err != nil {
+		return err.Error(), nil
+	}
+	delete(igs.Gmap, s)
+	return fullpath + " is removed", nil
 }
 
 // Interactive make interactive session
@@ -144,13 +170,17 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) erro
 	interWriter = w
 
 	sub := gomem.SubNewWithBase(r, w)
-	sub.Addf("show", show, "show Gmap")
+	sub.Addf("la", la, "show Gmap")
 	sub.Addf("ls", ls, "ls Gmap keys")
 	sub.Addf("new", newGomem, "new gomem")
-	sub.Addf("writeAll", writeAll, "write all data to gs.dir")
+	sub.Addf("write", writeAll, "write all data to gs.dir")
 	sub.Addf("state", state, "show state of gs")
 	sub.Addf("cd", cd, "change working directory")
-	sub.Addfa("la", la, "show title and content")
+	sub.Addf(":q", gomem.Exit, "exit alias")
+
+	sub.Addfa("show", show, "show title and content")
+	sub.Addfa("remove", remove, "remove json cache")
+	sub.Addfa("new", newGomemWithName, "")
 
 	if err := sub.Repl(prefix); err != nil {
 		return err

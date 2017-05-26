@@ -47,10 +47,10 @@ func (sub *SubCommands) Repl(prefix string) error {
 		var result string
 		var err error
 		switch {
-		case cmd.f != nil:
-			result, err = cmd.f()
 		case cmd.fa != nil && len(cmdline) == 2:
 			result, err = cmd.fa(strings.TrimSpace(cmdline[1]))
+		case cmd.f != nil:
+			result, err = cmd.f()
 		default:
 			fmt.Fprintf(sub.w, "invalid subcommand: argument: %q\n", cmdline)
 			continue
@@ -70,6 +70,13 @@ func (sub *SubCommands) Repl(prefix string) error {
 
 // Addf append function
 func (sub *SubCommands) Addf(key string, fnc func() (string, error), help string) {
+	if _, ok := sub.Map[key]; ok {
+		sub.Map[key].f = fnc
+		if sub.Map[key].helpmsg == "" {
+			sub.Map[key].helpmsg = help
+		}
+		return
+	}
 	sub.Map[key] = &subcmd{
 		f:       fnc,
 		helpmsg: help,
@@ -78,6 +85,13 @@ func (sub *SubCommands) Addf(key string, fnc func() (string, error), help string
 
 // Addfa append function with accept argument
 func (sub *SubCommands) Addfa(key string, fnc func(string) (string, error), help string) {
+	if _, ok := sub.Map[key]; ok {
+		sub.Map[key].fa = fnc
+		if sub.Map[key].helpmsg == "" {
+			sub.Map[key].helpmsg = help
+		}
+		return
+	}
 	sub.Map[key] = &subcmd{
 		fa:      fnc,
 		helpmsg: help,
