@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,6 +22,8 @@ type option struct {
 
 var opt option
 
+const version = "0.0"
+
 func (opt *option) init() {
 	flag.BoolVar(&opt.version, "version", false, "")
 	flag.BoolVar(&opt.version, "v", false, "")
@@ -36,6 +37,9 @@ func (opt *option) init() {
 	if flag.NArg() != 0 {
 		// TODO: impl parse subcmd
 		log.Fatalf("invalid args: %q", flag.Args())
+	}
+	if opt.version {
+		fmt.Fprintf(os.Stderr, "version %s", version)
 	}
 	var err error
 	opt.workdir, err = filepath.Abs(opt.workdir)
@@ -54,14 +58,6 @@ func init() {
 	opt.init()
 }
 
-// mock
-func run(w io.Writer, gs *gomem.Gomems, opt *option) error {
-	fmt.Fprintln(w, "debug: run")
-	fmt.Fprintf(w, "debug: %v\n%v\n", gs, opt)
-
-	return nil
-}
-
 func main() {
 	gs, err := gomem.GomemsNew()
 	if err != nil {
@@ -74,7 +70,7 @@ func main() {
 		}
 		return
 	}
-	if err := run(os.Stdout, gs, &opt); err != nil {
+	if err := run(os.Stdout, gs); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -142,3 +142,10 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) erro
 	}
 	return nil
 }
+
+// mock TODO: impl
+// specify not interactive then run the this function
+func run(w io.Writer, gs *gomem.Gomems) error {
+	fmt.Fprintln(w, "debug: run")
+	return nil
+}
