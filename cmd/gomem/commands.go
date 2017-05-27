@@ -3,13 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/kamisari/gomem"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
-)
 
-///bare test
+	"github.com/fatih/color"
+	"github.com/kamisari/gomem"
+)
 
 // for Read and confirm
 // accept exchange output and input
@@ -56,7 +58,7 @@ func confirm(msg string) bool {
 func la() (string, error) {
 	var str string
 	for key, v := range igs.Gmap {
-		str += fmt.Sprintln("-----", key, "-----")
+		str += color.GreenString(fmt.Sprintln("-----", key, "-----"))
 		str += fmt.Sprintln("[", v.JSON.Title, "]")
 		str += fmt.Sprintln(v.JSON.Content)
 	}
@@ -109,16 +111,28 @@ func writeAll() (string, error) {
 }
 func state() (string, error) {
 	var str string
-	str += fmt.Sprintln("igs.dir:", igs.GetDir())
+	str += color.GreenString(fmt.Sprintln("igs.dir:", igs.GetDir()))
+	infos, err := ioutil.ReadDir(igs.GetDir())
+	if err == nil {
+		for _, info := range infos {
+			if info.IsDir() {
+				str += color.HiGreenString(fmt.Sprintln("sub category:", info.Name()))
+			}
+		}
+	}
 	for key, v := range igs.Gmap {
-		str += fmt.Sprintln("----------", key, "----------")
-		str += fmt.Sprintln("override:", v.Override)
+		str += color.GreenString("%s:", key)
+		str += fmt.Sprint("[", v.JSON.Title, "]")
+		str += fmt.Sprintln(":read only", !v.Override)
 	}
 	return str, nil
 }
 func cd() (string, error) {
+	if !confirm("cd is dropped all data cache") {
+		return "", nil
+	}
 	pwd := igs.GetDir()
-	if err := os.Chdir(read("cd path:>")); err != nil {
+	if err := os.Chdir(read("cd category:>")); err != nil {
 		return err.Error(), nil
 	}
 	tmpgs, err := gomem.GomemsNew()
@@ -139,8 +153,8 @@ func show(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	str := fmt.Sprintln("[", g.JSON.Title, "]")
-	str += fmt.Sprintln(g.JSON.Content)
+	str := color.CyanString(fmt.Sprintln("[", g.JSON.Title, "]"))
+	str += color.CyanString(fmt.Sprintln(g.JSON.Content))
 	return str, nil
 }
 func remove(s string) (string, error) {
@@ -156,7 +170,15 @@ func remove(s string) (string, error) {
 		return err.Error(), nil
 	}
 	delete(igs.Gmap, s)
-	return fullpath + " is removed", nil
+	return color.RedString(fullpath + " is removed"), nil
+}
+func makeSubcategory(s string) (string, error) {
+	subname := filepath.Join(igs.GetDir(), filepath.Base(s))
+	err := os.Mkdir(subname, 0777)
+	if err != nil {
+		return err.Error(), nil
+	}
+	return "maked subcategory:" + subname, nil
 }
 
 // Interactive make interactive session

@@ -24,7 +24,7 @@ type Gomem struct {
 
 // Gomems map of Gomem and data directory
 type Gomems struct {
-	Gmap map[string]*Gomem // key: base(filepath)
+	Gmap map[string]*Gomem // key: filepath
 	dir  string            // reconsider export
 }
 
@@ -37,13 +37,13 @@ var ErrFileExists = errors.New("file exists, cannot override")
 var WritePerm = os.FileMode(0600)
 
 // New return *Gomem
-// fpath is modify to base name
+// fpath is modify to clean name
 // accepted filename is "*.json" only
 func New(fpath string, override bool) (*Gomem, error) {
 	if !strings.HasSuffix(fpath, ".json") {
 		return nil, fmt.Errorf("New: invalid filename:%s require filename is *.json", fpath)
 	}
-	return &Gomem{base: filepath.Base(fpath), Override: override}, nil
+	return &Gomem{base: filepath.Clean(fpath), Override: override}, nil
 }
 
 // IsValidFilePath if invalid then return error
@@ -133,15 +133,26 @@ func (gs *Gomems) IncludeJSON() error {
 	if gs.Gmap == nil {
 		return fmt.Errorf("*Gomems.IncludeJSON: Gmap is nil")
 	}
-	infos, err := ioutil.ReadDir(gs.dir)
+	var bases []string
+	var pushBases func(string) error
+	pushBases = func(root string) error {
+		infos, err := ioutil.ReadDir(root)
+		if err != nil {
+			return err
+		}
+		for _, info := range infos {
+			if info.IsDir() {
+				return pushBases(filepath.Join(gs.dir, info.Name()))
+			}
+			if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
+				bases = append(bases, info.Name())
+			}
+		}
+		return nil
+	}
+	err := pushBases(gs.dir)
 	if err != nil {
 		return err
-	}
-	var bases []string
-	for _, info := range infos {
-		if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
-			bases = append(bases, info.Name())
-		}
 	}
 	for _, x := range bases {
 		if g, ok := gs.Gmap[x]; ok {
