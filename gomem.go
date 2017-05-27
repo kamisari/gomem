@@ -145,7 +145,10 @@ func (gs *Gomems) IncludeJSON() error {
 				return pushBases(filepath.Join(gs.dir, info.Name()))
 			}
 			if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
-				bases = append(bases, info.Name())
+				path, err := filepath.Rel(gs.dir, filepath.Join(root, info.Name()))
+				if err == nil {
+					bases = append(bases, path)
+				}
 			}
 		}
 		return nil
