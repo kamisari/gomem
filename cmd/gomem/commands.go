@@ -59,34 +59,34 @@ func confirm(msg string) bool {
 func la() (string, error) {
 	var str string
 	for key, v := range igs.Gmap {
-		str += color.GreenString(fmt.Sprintln("-----", key, "-----"))
-		str += fmt.Sprintln("[", v.JSON.Title, "]")
-		str += fmt.Sprintln(v.JSON.Content)
+		str += color.GreenString("----- %s -----\n", key)
+		str += color.CyanString("[ %s ]\n", v.JSON.Title)
+		str += color.MagentaString("%s\n", v.JSON.Content)
 	}
 	return str, nil
 }
 func ls() (string, error) {
 	var str string
 	for key := range igs.Gmap {
-		str += fmt.Sprintln(key)
+		str += color.GreenString("%s\n", key)
 	}
 	return str, nil
 }
 func state() (string, error) {
 	var str string
-	str += color.GreenString(fmt.Sprintln("igs.dir:", igs.GetDir()))
+	str += color.GreenString("igs.dir:%s\n", igs.GetDir())
 	infos, err := ioutil.ReadDir(igs.GetDir())
 	if err == nil {
 		for _, info := range infos {
 			if info.IsDir() {
-				str += color.HiGreenString(fmt.Sprintln("sub category:", info.Name()))
+				str += color.HiGreenString("sub category:%s\n", info.Name())
 			}
 		}
 	}
 	for key, v := range igs.Gmap {
 		str += color.GreenString("%s:", key)
-		str += fmt.Sprint("[", v.JSON.Title, "]")
-		str += fmt.Sprintln(":read only", !v.Override)
+		str += color.CyanString("[ %s ]:", v.JSON.Title)
+		str += fmt.Sprintln("read only", !v.Override)
 	}
 	return str, nil
 }
@@ -98,8 +98,8 @@ func show(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	str := color.CyanString(fmt.Sprintln("[", g.JSON.Title, "]"))
-	str += color.CyanString(fmt.Sprintln(g.JSON.Content))
+	str := color.CyanString("[ %s ]\n", g.JSON.Title)
+	str += color.MagentaString(g.JSON.Content)
 	return str, nil
 }
 
