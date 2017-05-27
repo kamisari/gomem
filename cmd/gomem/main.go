@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/user"
@@ -77,4 +78,11 @@ func main() {
 	if err := interactive(os.Stdin, os.Stdout, "gomem:>", gs); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// mock TODO: impl
+// specify not interactive then run the this function
+func run(w io.Writer, gs *gomem.Gomems) error {
+	fmt.Fprintln(w, "debug: run")
+	return nil
 }

@@ -96,7 +96,7 @@ func newGomemWithName(s string) (string, error) {
 	}
 	return "new gomem included", nil
 }
-func writeAll() (string, error) {
+func write() (string, error) {
 	b := confirm(fmt.Sprintf("write mems into %s", igs.GetDir()))
 	var result string
 	if b {
@@ -180,9 +180,26 @@ func makeSubcategory(s string) (string, error) {
 	}
 	return "maked subcategory:" + subname, nil
 }
+func removeSubcategory(s string) (string, error) {
+	subname := filepath.Join(igs.GetDir(), filepath.Base(s))
+	info, err := os.Lstat(subname)
+	if err != nil {
+		return err.Error(), nil
+	}
+	if !info.IsDir() {
+		return "invalid category:" + s, nil
+	}
+	if !confirm("remove all files in " + subname) {
+		return "", nil
+	}
+	err = os.RemoveAll(subname)
+	if err != nil {
+		return err.Error(), nil
+	}
+	return color.RedString("removed subcategory:" + subname), nil
+}
 
-// Interactive make interactive session
-// this file export only this function
+// interactive make interactive session
 func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
@@ -195,24 +212,19 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) erro
 	sub.Addf("la", la, "show Gmap")
 	sub.Addf("ls", ls, "ls Gmap keys")
 	sub.Addf("new", newGomem, "new gomem")
-	sub.Addf("write", writeAll, "write all data to gs.dir")
+	sub.Addf("write", write, "write all data to gs.dir")
 	sub.Addf("state", state, "show state of gs")
 	sub.Addf("cd", cd, "change working directory")
 	sub.Addf(":q", gomem.Exit, "exit alias")
 
+	sub.Addfa("mkdir", makeSubcategory, "mkdir make subcategory in igs.dir")
 	sub.Addfa("show", show, "show title and content")
 	sub.Addfa("remove", remove, "remove json cache")
+	sub.Addfa("removesub", removeSubcategory, "remove subcategory")
 	sub.Addfa("new", newGomemWithName, "")
 
 	if err := sub.Repl(prefix); err != nil {
 		return err
 	}
-	return nil
-}
-
-// mock TODO: impl
-// specify not interactive then run the this function
-func run(w io.Writer, gs *gomem.Gomems) error {
-	fmt.Fprintln(w, "debug: run")
 	return nil
 }
