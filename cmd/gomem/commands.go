@@ -24,6 +24,12 @@ var (
 	interReader io.Reader = os.Stdin
 )
 
+var (
+	prefname   = color.GreenString("filename:> ")
+	pretitle   = color.MagentaString("title:> ")
+	precontent = color.CyanString("content:> ")
+)
+
 // simple read
 func read(msg string) string {
 	fmt.Print(msg)
@@ -106,13 +112,13 @@ func show(s string) (string, error) {
 
 // contact to cache //
 func newGomem() (string, error) {
-	fpath := read("filename:>")
+	fpath := read(prefname)
 	g, err := gomem.New(fpath, true)
 	if err != nil {
 		return err.Error(), nil
 	}
-	g.JSON.Title = read("title:>")
-	g.JSON.Content = read("content:>")
+	g.JSON.Title = read(pretitle)
+	g.JSON.Content = read(precontent)
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
@@ -123,8 +129,8 @@ func newGomemWithName(s string) (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	g.JSON.Title = read("title:>")
-	g.JSON.Content = read("content:>")
+	g.JSON.Title = read(pretitle)
+	g.JSON.Content = read(precontent)
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
@@ -164,7 +170,7 @@ func modContent(s string) (string, error) {
 		return "not found:" + s, nil
 	}
 	msg := color.GreenString("%s:", s) + color.MagentaString("[ %s ]", g.JSON.Title) + color.CyanString("%s\n", g.JSON.Content)
-	c := read(msg + "mod content:>")
+	c := read(msg + "mod " + precontent)
 	g.JSON.Content = c
 	return color.GreenString("content modified"), nil
 }
@@ -271,7 +277,7 @@ func createTodo(s string) (string, error) {
 	t := time.Now()
 	ts := fmt.Sprintf("%d %s %d %d:%d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
 	g.JSON.Title = fmt.Sprintf("<%s>:%s", ts, s)
-	g.JSON.Content = read("content:> ")
+	g.JSON.Content = read(precontent)
 	igs.Gmap[s] = g
 	return "cache in:" + color.GreenString("%s:", s) + color.MagentaString("[ %s ]:", g.JSON.Title) + color.CyanString("%s", g.JSON.Content), nil
 }
