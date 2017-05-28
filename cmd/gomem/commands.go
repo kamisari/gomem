@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/kamisari/gomem"
@@ -60,8 +61,8 @@ func la() (string, error) {
 	var str string
 	for key, v := range igs.Gmap {
 		str += color.GreenString("----- %s -----\n", key)
-		str += color.CyanString("[ %s ]\n", v.JSON.Title)
-		str += color.MagentaString("%s\n", v.JSON.Content)
+		str += color.MagentaString("[ %s ]\n", v.JSON.Title)
+		str += color.CyanString("%s\n", v.JSON.Content)
 	}
 	return str, nil
 }
@@ -85,7 +86,7 @@ func state() (string, error) {
 	}
 	for key, v := range igs.Gmap {
 		str += color.GreenString("%s:", key)
-		str += color.CyanString("[ %s ]:", v.JSON.Title)
+		str += color.MagentaString("[ %s ]:", v.JSON.Title)
 		str += fmt.Sprintln("read only", !v.Override)
 	}
 	return str, nil
@@ -98,8 +99,8 @@ func show(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	str := color.CyanString("[ %s ]\n", g.JSON.Title)
-	str += color.MagentaString(g.JSON.Content)
+	str := color.MagentaString("[ %s ]\n", g.JSON.Title)
+	str += color.CyanString(g.JSON.Content)
 	return str, nil
 }
 
@@ -152,7 +153,7 @@ func cd() (string, error) {
 		return err.Error(), nil
 	}
 	igs = tmpgs
-	return "changed directory to:" + igs.GetDir(), nil
+	return "changed directory to:" + color.HiGreenString(igs.GetDir()), nil
 }
 func modContent(s string) (string, error) {
 	if !strings.HasSuffix(s, ".json") {
@@ -162,7 +163,7 @@ func modContent(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	msg := color.GreenString("%s:[%s]:", s, g.JSON.Title) + color.MagentaString("%s\n", g.JSON.Content)
+	msg := color.GreenString("%s:", s) + color.MagentaString("[ %s ]", g.JSON.Title) + color.CyanString("%s\n", g.JSON.Content)
 	c := read(msg + "mod content:>")
 	g.JSON.Content = c
 	return color.GreenString("content modified"), nil
@@ -185,8 +186,12 @@ func todo() (string, error) {
 	for key, g := range igs.Gmap {
 		if strings.HasPrefix(key, "todo"+string(filepath.Separator)) {
 			str += color.GreenString("%s:", key)
-			str += color.CyanString("[%s]\n", g.JSON.Title)
-			str += color.MagentaString("%s\n", g.JSON.Content)
+			if strings.HasSuffix(g.JSON.Title, ":done") {
+				str += color.RedString("[ %s ]\n", g.JSON.Title)
+			} else {
+				str += color.MagentaString("[ %s ]\n", g.JSON.Title)
+			}
+			str += color.CyanString("\t%s\n", g.JSON.Content)
 		}
 	}
 	return str, nil
@@ -207,7 +212,7 @@ func write() (string, error) {
 	if b {
 		for key, x := range igs.Gmap {
 			if err := x.WriteFile(); err != nil {
-				result += fmt.Sprintln(key, err.Error())
+				result += color.RedString("err:%s:%s\n", key, err.Error())
 			}
 		}
 		return result, nil
@@ -250,6 +255,41 @@ func removeSubcategory(s string) (string, error) {
 	}
 	return color.RedString("removed subcategory:" + subname), nil
 }
+func createTodo(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		var err error
+		g, err = gomem.New(s, true)
+		if err != nil {
+			return err.Error(), nil
+		}
+	}
+	t := time.Now()
+	ts := fmt.Sprintf("%d %s %d %d:%d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
+	g.JSON.Title = fmt.Sprintf("<%s>:%s", ts, s)
+	g.JSON.Content = read("content:> ")
+	igs.Gmap[s] = g
+	return "cache in:" + color.GreenString("%s:", s) + color.MagentaString("[ %s ]:", g.JSON.Title) + color.CyanString("%s", g.JSON.Content), nil
+}
+func done(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found" + s, nil
+	}
+	if strings.HasSuffix(g.JSON.Title, ":done") {
+		return "already done:" + color.GreenString(s), nil
+	}
+	g.JSON.Title += ":done"
+	return color.GreenString("%s:", s) + color.RedString("[ %s ]:", g.JSON.Title) + color.CyanString("%s", g.JSON.Content), nil
+}
 
 // interactive make interactive session
 func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firstRun string) error {
@@ -268,7 +308,7 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firs
 	sub.Addf("new", newGomem, "new gomem")
 	sub.Addf("write", write, "write all data to gs.dir")
 	sub.Addf("cd", cd, "change working directory, and exchange of data cache")
-	sub.Addf("todo", todo, "show subcategory [todo/*]")
+	sub.Addf("todo", todo, "subcategory [todo/*]")
 	sub.Addf("include", include, "reinclude from gs.dir")
 
 	sub.Addfa("show", show, "show title and content")
@@ -278,6 +318,8 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firs
 	sub.Addfa("removecache", removeCache, "remove cache data")
 	sub.Addfa("new", newGomemWithName, "")
 	sub.Addfa("mod", modContent, "modify content")
+	sub.Addfa("todo", createTodo, "")
+	sub.Addfa("done", done, "for [todo/*] check done flag")
 
 	if firstRun != "" {
 		sub.InterCh <- firstRun
