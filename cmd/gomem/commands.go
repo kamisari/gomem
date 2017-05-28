@@ -93,7 +93,7 @@ func state() (string, error) {
 	for key, v := range igs.Gmap {
 		str += color.GreenString("%s:", key)
 		str += color.MagentaString("[ %s ]:", v.JSON.Title)
-		str += fmt.Sprintln("read only", !v.Override)
+		str += color.RedString("read only %v", !v.Override)
 	}
 	return str, nil
 }

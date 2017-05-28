@@ -30,7 +30,7 @@ var opt option
 func (opt *option) init() {
 	flag.BoolVar(&opt.version, "version", false, "")
 	flag.StringVar(&opt.workdir, "workdir", "", "")
-	flag.StringVar(&opt.autocmd, "autocmd", "la", "")
+	flag.StringVar(&opt.autocmd, "autocmd", "todo", "")
 	flag.BoolVar(&opt.autowrite, "autowrite", false, "")
 	flag.Parse()
 	if flag.NArg() != 0 {
