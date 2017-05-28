@@ -202,7 +202,7 @@ func makeSubcategory(s string) (string, error) {
 	return "maked subcategory:" + subname, nil
 }
 func write() (string, error) {
-	b := confirm(fmt.Sprintf("write mems into %s", igs.GetDir()))
+	b := confirm("write all cache in " + igs.GetDir())
 	var result string
 	if b {
 		for key, x := range igs.Gmap {
