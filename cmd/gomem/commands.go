@@ -252,7 +252,7 @@ func removeSubcategory(s string) (string, error) {
 }
 
 // interactive make interactive session
-func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) error {
+func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firstRun string) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
@@ -277,8 +277,11 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems) erro
 	sub.Addfa("removesub", removeSubcategory, "remove subcategory directory")
 	sub.Addfa("removecache", removeCache, "remove cache data")
 	sub.Addfa("new", newGomemWithName, "")
-	sub.Addfa("modc", modContent, "modify content")
+	sub.Addfa("mod", modContent, "modify content")
 
+	if firstRun != "" {
+		sub.InterCh <- firstRun
+	}
 	if err := sub.Repl(prefix); err != nil {
 		return err
 	}

@@ -16,9 +16,10 @@ type subcmd struct {
 
 // SubCommands interp functions for Repl
 type SubCommands struct {
-	w   io.Writer
-	r   io.Reader
-	Map map[string]*subcmd
+	r       io.Reader
+	w       io.Writer
+	Map     map[string]*subcmd
+	InterCh chan string // accept another input
 }
 
 // ErrValidExit for valid exit, for Repl
@@ -31,14 +32,21 @@ var ErrValidExit = errors.New("valid exit")
 func (sub *SubCommands) Repl(prefix string) error {
 	sc := bufio.NewScanner(sub.r)
 	for {
-		fmt.Fprint(sub.w, prefix)
-		if !sc.Scan() {
-			return fmt.Errorf("fail sc.Scan")
+		var s string
+		select {
+		case interStr := <-sub.InterCh:
+			s = strings.TrimSpace(interStr)
+		default:
+			fmt.Fprint(sub.w, prefix)
+			if !sc.Scan() {
+				return fmt.Errorf("fail sc.Scan")
+			}
+			if sc.Err() != nil {
+				return sc.Err()
+			}
+			s = strings.TrimSpace(sc.Text())
 		}
-		if sc.Err() != nil {
-			return sc.Err()
-		}
-		cmdline := strings.SplitN(strings.TrimSpace(sc.Text()), " ", 2)
+		cmdline := strings.SplitN(s, " ", 2)
 		cmd, ok := sub.Map[strings.TrimSpace(cmdline[0])]
 		if !ok {
 			fmt.Fprintf(sub.w, "invalid subcommand: %q\n", sc.Text())
@@ -102,9 +110,10 @@ func (sub *SubCommands) Addfa(key string, fnc func(string) (string, error), help
 // for "exit" and "help"
 func SubNewWithBase(r io.Reader, w io.Writer) *SubCommands {
 	sub := &SubCommands{
-		Map: make(map[string]*subcmd),
-		r:   r,
-		w:   w,
+		r:       r,
+		w:       w,
+		Map:     make(map[string]*subcmd),
+		InterCh: make(chan string, 1),
 	}
 	sub.Addf("exit", Exit, "call exit")
 	sub.Addf("help", sub.Help, "show subcommands")
