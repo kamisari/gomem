@@ -15,9 +15,10 @@ import (
 const version = "0.0"
 
 type option struct {
-	version bool
-	workdir string
-	autocmd string
+	version   bool
+	workdir   string
+	autocmd   string
+	autowrite bool
 
 	// TODO: impl subcmd for run
 	subcmd  string
@@ -30,6 +31,7 @@ func (opt *option) init() {
 	flag.BoolVar(&opt.version, "version", false, "")
 	flag.StringVar(&opt.workdir, "workdir", "", "")
 	flag.StringVar(&opt.autocmd, "autocmd", "la", "")
+	flag.BoolVar(&opt.autowrite, "autowrite", false, "")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		// TODO: impl parse subcmd
@@ -68,13 +70,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// TODO: impl
 	if opt.subcmd != "" {
 		if err := run(os.Stdout, gs); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
-	if err := interactive(os.Stdin, os.Stdout, "gomem:> ", gs, opt.autocmd); err != nil {
+
+	if err := interactive(os.Stdin, os.Stdout, "gomem:> ", gs, opt.autocmd, opt.autowrite); err != nil {
 		log.Fatal(err)
 	}
 }

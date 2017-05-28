@@ -16,10 +16,11 @@ type subcmd struct {
 
 // SubCommands interp functions for Repl
 type SubCommands struct {
-	r       io.Reader
-	w       io.Writer
-	Map     map[string]*subcmd
-	InterCh chan string // accept another input
+	r         io.Reader
+	w         io.Writer
+	Map       map[string]*subcmd
+	InterCh   chan string // accept another input
+	CallBacks []func()    // call at ErrValidExit
 }
 
 // ErrValidExit for valid exit, for Repl
@@ -66,6 +67,9 @@ func (sub *SubCommands) Repl(prefix string) error {
 		if err != nil {
 			switch err {
 			case ErrValidExit:
+				for _, f := range sub.CallBacks {
+					f()
+				}
 				fmt.Fprintln(sub.w, result) // exit message
 				return nil
 			default:
@@ -106,14 +110,20 @@ func (sub *SubCommands) Addfa(key string, fnc func(string) (string, error), help
 	}
 }
 
+// AddCallBack after sub.Repl and ErrValidExit then call functions
+func (sub *SubCommands) AddCallBack(fnc func()) {
+	sub.CallBacks = append(sub.CallBacks, fnc)
+}
+
 // SubNewWithBase return SubCommands with base commands
 // for "exit" and "help"
 func SubNewWithBase(r io.Reader, w io.Writer) *SubCommands {
 	sub := &SubCommands{
-		r:       r,
-		w:       w,
-		Map:     make(map[string]*subcmd),
-		InterCh: make(chan string, 1),
+		r:         r,
+		w:         w,
+		Map:       make(map[string]*subcmd),
+		InterCh:   make(chan string, 1),
+		CallBacks: []func(){},
 	}
 	sub.Addf("exit", Exit, "call exit")
 	sub.Addf("help", sub.Help, "show subcommands")

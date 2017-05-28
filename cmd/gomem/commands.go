@@ -292,7 +292,7 @@ func done(s string) (string, error) {
 }
 
 // interactive make interactive session
-func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firstRun string) error {
+func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firstRun string, autoWrite bool) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
@@ -323,6 +323,15 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firs
 
 	if firstRun != "" {
 		sub.InterCh <- firstRun
+	}
+	if autoWrite {
+		sub.AddCallBack(func() {
+			result, err := write()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Fprintln(interWriter, result)
+		})
 	}
 	if err := sub.Repl(prefix); err != nil {
 		return err
