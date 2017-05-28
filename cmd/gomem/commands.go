@@ -103,7 +103,7 @@ func show(s string) (string, error) {
 	return str, nil
 }
 
-// contact to data //
+// contact to cache //
 func newGomem() (string, error) {
 	fpath := read("filename:>")
 	g, err := gomem.New(fpath, true)
