@@ -28,6 +28,7 @@ func (opt *option) init() {
 	flag.StringVar(&opt.workdir, "workdir", "", "")
 	flag.StringVar(&opt.autocmd, "autocmd", "todo", "")
 	flag.BoolVar(&opt.autowrite, "autowrite", false, "")
+	flag.BoolVar(&opt.autowrite, "w", false, "alias of autowrite")
 	flag.BoolVar(&opt.interactive, "interactive", false, "")
 	flag.BoolVar(&opt.interactive, "i", false, "alias of interactive")
 	flag.Parse()
