@@ -46,6 +46,9 @@ func (sub *SubCommands) Repl(prefix string) error {
 				return sc.Err()
 			}
 			s = strings.TrimSpace(sc.Text())
+			if s == "" {
+				continue
+			}
 		}
 		cmdline := strings.SplitN(s, " ", 2)
 		cmd, ok := sub.Map[strings.TrimSpace(cmdline[0])]

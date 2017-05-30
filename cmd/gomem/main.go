@@ -15,10 +15,11 @@ import (
 const version = "0.0"
 
 type option struct {
-	version   bool
-	workdir   string
-	autocmd   string
-	autowrite bool
+	version     bool
+	workdir     string
+	autocmd     string
+	autowrite   bool
+	interactive bool
 
 	// TODO: impl subcmd for run
 	subcmd  string
@@ -32,6 +33,8 @@ func (opt *option) init() {
 	flag.StringVar(&opt.workdir, "workdir", "", "")
 	flag.StringVar(&opt.autocmd, "autocmd", "todo", "")
 	flag.BoolVar(&opt.autowrite, "autowrite", false, "")
+	flag.BoolVar(&opt.interactive, "interactive", false, "")
+	flag.BoolVar(&opt.interactive, "i", false, "alias of interactive")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		// TODO: impl parse subcmd
@@ -56,12 +59,13 @@ func (opt *option) init() {
 	if err := os.Chdir(opt.workdir); err != nil {
 		log.Fatal(err)
 	}
+	if opt.interactive == false {
+		opt.autocmd = opt.autocmd + string(filepath.ListSeparator) + "exit"
+	}
 }
 
 func init() {
 	log.SetPrefix("gomem:")
-	log.SetFlags(log.Lshortfile)
-
 	opt.init()
 }
 
@@ -79,7 +83,8 @@ func main() {
 		return
 	}
 
-	if err := interactive(os.Stdin, os.Stdout, "gomem:> ", gs, opt.autocmd, opt.autowrite); err != nil {
+	log.Println(filepath.SplitList(opt.autocmd))
+	if err := interactive(os.Stdin, os.Stdout, "gomem:> ", gs, filepath.SplitList(opt.autocmd), opt.autowrite); err != nil {
 		log.Fatal(err)
 	}
 }

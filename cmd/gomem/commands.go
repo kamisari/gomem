@@ -298,7 +298,7 @@ func done(s string) (string, error) {
 }
 
 // interactive make interactive session
-func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firstRun string, autoWrite bool) error {
+func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, autoRuns []string, autoWrite bool) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
@@ -327,8 +327,11 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, firs
 	sub.Addfa("todo", createTodo, "")
 	sub.Addfa("done", done, "for [todo/*] check done flag")
 
-	if firstRun != "" {
-		sub.InterCh <- firstRun
+	if autoRuns != nil {
+		sub.InterCh = make(chan string, len(autoRuns))
+		for _, s := range autoRuns {
+			sub.InterCh <- s
+		}
 	}
 	if autoWrite {
 		sub.AddCallBack(func() {
