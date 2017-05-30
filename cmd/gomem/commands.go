@@ -169,7 +169,9 @@ func modContent(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	msg := color.GreenString("%s:", s) + color.MagentaString("[ %s ]", g.JSON.Title) + color.CyanString("%s\n", g.JSON.Content)
+	msg := color.GreenString("%s:", s) +
+		color.MagentaString("[ %s ]", g.JSON.Title) +
+		color.CyanString("%s\n", g.JSON.Content)
 	c := read(msg + "mod " + precontent)
 	g.JSON.Content = c
 	return color.GreenString("content modified"), nil
@@ -197,7 +199,7 @@ func todo() (string, error) {
 			} else {
 				str += color.MagentaString("[ %s ]\n", g.JSON.Title)
 			}
-			str += color.CyanString("\t%s\n", g.JSON.Content)
+			str += color.CyanString("\t%s\n", strings.Replace(g.JSON.Content, "\n", "\n\t", -1))
 		}
 	}
 	return str, nil
@@ -279,7 +281,26 @@ func createTodo(s string) (string, error) {
 	g.JSON.Title = fmt.Sprintf("<%s>:%s", ts, s)
 	g.JSON.Content = read(precontent)
 	igs.Gmap[s] = g
-	return "cache in:" + color.GreenString("%s:", s) + color.MagentaString("[ %s ]:", g.JSON.Title) + color.CyanString("%s", g.JSON.Content), nil
+	return "cache in:" + color.GreenString("%s:", s) +
+			color.MagentaString("[ %s ]:", g.JSON.Title) +
+			color.CyanString("%s", g.JSON.Content),
+		nil
+}
+func appendTodo(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found:" + s, nil
+	}
+	g.JSON.Content = fmt.Sprintf("%s\n%s\n", g.JSON.Content, read("append "+precontent))
+	return "cache in:" +
+			color.GreenString("%s:", s) +
+			color.MagentaString("[ %s ]\n", g.JSON.Title) +
+			color.CyanString("%s", g.JSON.Content),
+		nil
 }
 func done(s string) (string, error) {
 	if !strings.HasSuffix(s, ".json") {
@@ -294,7 +315,10 @@ func done(s string) (string, error) {
 		return "already done:" + color.GreenString(s), nil
 	}
 	g.JSON.Title += ":done"
-	return color.GreenString("%s:", s) + color.RedString("[ %s ]:", g.JSON.Title) + color.CyanString("%s", g.JSON.Content), nil
+	return color.GreenString("%s:", s) +
+			color.RedString("[ %s ]:", g.JSON.Title) +
+			color.CyanString("%s", g.JSON.Content),
+		nil
 }
 
 // interactive make interactive session
@@ -326,6 +350,7 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 	sub.Addfa("mod", modContent, "modify content")
 	sub.Addfa("todo", createTodo, "")
 	sub.Addfa("done", done, "for [todo/*] check done flag")
+	sub.Addfa("append", appendTodo, "append todo")
 
 	if autoRuns != nil {
 		sub.InterCh = make(chan string, len(autoRuns))
