@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -320,6 +321,34 @@ func done(s string) (string, error) {
 			color.CyanString("%s", g.JSON.Content),
 		nil
 }
+func trim(s string) (string, error) {
+	if !strings.HasSuffix(s, ".json") {
+		s = s + ".json"
+	}
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found" + s, nil
+	}
+	msg := color.CyanString("%s\n", g.JSON.Content)
+	trimIndex, err := strconv.Atoi(read(msg + "index :> "))
+	if err != nil {
+		return err.Error(), nil
+	}
+	ss := strings.SplitAfter(g.JSON.Content, "\n")
+	if trimIndex < 0 || trimIndex > len(ss) {
+		return "invalid line number:" + strconv.Itoa(trimIndex), nil
+	}
+	var str []string
+	for index, s := range ss {
+		if index == trimIndex {
+			continue
+		}
+		str = append(str, s)
+	}
+	g.JSON.Content = strings.Join(str, "")
+	return color.CyanString(g.JSON.Content), nil
+}
 
 // interactive make interactive session
 func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, autoRuns []string, autoWrite bool) error {
@@ -351,6 +380,7 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 	sub.Addfa("todo", createTodo, "")
 	sub.Addfa("done", done, "for [todo/*] check done flag")
 	sub.Addfa("append", appendTodo, "append todo")
+	sub.Addfa("trim", trim, "trim in todo")
 
 	if autoRuns != nil {
 		sub.InterCh = make(chan string, len(autoRuns))
