@@ -204,6 +204,17 @@ func modContent(s string) (string, error) {
 	g.J.Content = append(g.J.Content, c)
 	return color.GreenString("content modified"), nil
 }
+func toggleReadonly(s string) (string, error) {
+	path2json(&s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found" + s, nil
+	}
+	g.Override = !g.Override
+	str := color.GreenString("key:%s", s)
+	str += color.HiRedString("readonly:%+v", g.Override)
+	return str, nil
+}
 func removeCache(s string) (string, error) {
 	path2json(&s)
 	if _, ok := igs.Gmap[s]; !ok {
@@ -374,6 +385,7 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 	sub.Addfa("done", done, "for [todo/*] check done flag")
 	sub.Addfa("append", appendTodo, "append todo")
 	sub.Addfa("trim", trim, "trim in todo")
+	sub.Addfa("readonly!", toggleReadonly, "toggle readonly falg")
 
 	if autoRuns != nil {
 		sub.InterCh = make(chan string, len(autoRuns))
