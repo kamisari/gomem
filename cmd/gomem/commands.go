@@ -312,6 +312,7 @@ func appendTodo(s string) (string, error) {
 		return "not found:" + s, nil
 	}
 	g.J.Content = append(g.J.Content, read("append "+precontent))
+	g.J.Title = strings.TrimSuffix(g.J.Title, ":done")
 	return "cache in:" +
 			color.GreenString("%s:", s) +
 			color.MagentaString("[ %s ]\n", g.J.Title) +
