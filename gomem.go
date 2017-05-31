@@ -16,7 +16,7 @@ type JSON struct {
 	Content []string `json:"content"`
 }
 
-// Gomem JSON structure
+// Gomem have JSON structure
 type Gomem struct {
 	J        JSON
 	Override bool
