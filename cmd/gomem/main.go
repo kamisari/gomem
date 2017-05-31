@@ -11,7 +11,7 @@ import (
 	"github.com/kamisari/gomem"
 )
 
-const version = "0.0"
+const version = "0.0.0"
 
 type option struct {
 	version     bool

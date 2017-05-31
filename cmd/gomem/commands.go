@@ -368,9 +368,9 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 
 	sub.Addfa("show", show, "show title and content")
 	sub.Addfa("mkdir", makeSubcategory, "mkdir make subcategory in gs.dir")
-	sub.Addfa("remove", remove, "remove json file")
-	sub.Addfa("removesub", removeSubcategory, "remove subcategory directory")
-	sub.Addfa("removecache", removeCache, "remove cache data")
+	sub.Addfa("rm", remove, "remove physical file")
+	sub.Addfa("rmsub", removeSubcategory, "remove subcategory directory")
+	sub.Addfa("rmcache", removeCache, "remove cache data")
 	sub.Addfa("new", newGomemWithName, "")
 	sub.Addfa("mod", modContent, "modify content")
 	sub.Addfa("todo", createTodo, "")
