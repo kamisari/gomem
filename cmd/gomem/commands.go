@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,6 +63,13 @@ func confirm(msg string) bool {
 	return false
 }
 
+// mod path for json
+func path2json(s *string) {
+	if !strings.HasSuffix(*s, ".json") {
+		*s = *s + ".json"
+	}
+}
+
 /// commands ///
 // status //
 func la() (string, error) {
@@ -99,9 +107,7 @@ func state() (string, error) {
 	return str, nil
 }
 func show(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	g, ok := igs.Gmap[s]
 	if !ok {
 		return "not found:" + s, nil
@@ -113,7 +119,8 @@ func show(s string) (string, error) {
 
 // contact to cache //
 func newGomem() (string, error) {
-	fpath := read(prefname)
+	// trim ..
+	fpath := path.Clean(read(prefname))
 	g, err := gomem.New(fpath, true)
 	if err != nil {
 		return err.Error(), nil
@@ -126,6 +133,7 @@ func newGomem() (string, error) {
 	return "new gomem key:" + fpath, nil
 }
 func newGomemWithName(s string) (string, error) {
+	s = path.Clean(s)
 	g, err := gomem.New(s, true)
 	if err != nil {
 		return err.Error(), nil
@@ -144,6 +152,8 @@ func include() (string, error) {
 	}
 	return "data cache reincluded: from " + igs.GetDir(), nil
 }
+// TODO: cd: maybe don't needs use
+//     : consider delete
 func cd() (string, error) {
 	if !confirm("cd is dropped all data cache") {
 		return "", nil
@@ -163,9 +173,7 @@ func cd() (string, error) {
 	return "changed directory to:" + color.HiGreenString(igs.GetDir()), nil
 }
 func modContent(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	g, ok := igs.Gmap[s]
 	if !ok {
 		return "not found:" + s, nil
@@ -178,9 +186,7 @@ func modContent(s string) (string, error) {
 	return color.GreenString("content modified"), nil
 }
 func removeCache(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	if _, ok := igs.Gmap[s]; !ok {
 		return "not found:" + s, nil
 	}
@@ -229,9 +235,7 @@ func write() (string, error) {
 	return "", nil
 }
 func remove(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	fullpath, err := igs.GetAbs(s)
 	if err != nil {
 		return err.Error(), nil
@@ -265,9 +269,7 @@ func removeSubcategory(s string) (string, error) {
 	return color.RedString("removed subcategory:" + subname), nil
 }
 func createTodo(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	s = filepath.Join("todo", s)
 	g, ok := igs.Gmap[s]
 	if !ok {
@@ -288,9 +290,7 @@ func createTodo(s string) (string, error) {
 		nil
 }
 func appendTodo(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	s = filepath.Join("todo", s)
 	g, ok := igs.Gmap[s]
 	if !ok {
@@ -304,9 +304,7 @@ func appendTodo(s string) (string, error) {
 		nil
 }
 func done(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	s = filepath.Join("todo", s)
 	g, ok := igs.Gmap[s]
 	if !ok {
@@ -322,9 +320,7 @@ func done(s string) (string, error) {
 		nil
 }
 func trim(s string) (string, error) {
-	if !strings.HasSuffix(s, ".json") {
-		s = s + ".json"
-	}
+	path2json(&s)
 	s = filepath.Join("todo", s)
 	g, ok := igs.Gmap[s]
 	if !ok {
