@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// JSON JSON structure
 type JSON struct {
 	Title   string   `json:"title"`
 	Content []string `json:"content"`
@@ -19,6 +20,7 @@ type JSON struct {
 type Gomem struct {
 	J        JSON
 	Override bool
+	// TODO: to fullpath
 	base     string
 }
 

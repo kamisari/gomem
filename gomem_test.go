@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 	}
 	var gomemTests = []struct {
 		in      input
-		expBase string
+		want    string
 		wantErr bool
 	}{
 		// invalid in
@@ -54,12 +54,12 @@ func TestNew(t *testing.T) {
 		// valid in
 		{
 			in:      input{path: "./foo.json", flag: false},
-			expBase: "foo.json",
+			want:    "foo.json",
 			wantErr: false,
 		},
 		{
 			in:      input{path: "/home/json/test/json.json"},
-			expBase: "json.json",
+			want:    "/home/json/test/json.json",
 			wantErr: false,
 		},
 	}
@@ -76,15 +76,15 @@ func TestNew(t *testing.T) {
 			t.Errorf("failed initalize: g == nil")
 			continue
 		}
-		if v.expBase != g.base {
-			t.Errorf("exp: %s\nout:%s", v.expBase, g.base)
+		if v.want != g.base {
+			t.Errorf("want: %s\nout:%s", v.want, g.base)
 		}
 	}
 }
 
 func TestGomem_IsValidFilePath(t *testing.T) {
 	dirname := filepath.Join(tmpdir, "dir.json")
-	if err := os.Mkdir(dirname, os.ModeDir|0700); err != nil {
+	if err := os.Mkdir(dirname, 0777); err != nil {
 		t.Fatal(err)
 	}
 	filename := tmpfile
@@ -128,7 +128,7 @@ func TestGomem_ReadFile(t *testing.T) {
 	}{
 		{
 			fullPath: tmpfile,
-			data:     []byte(`{"title": "test", "content": "test"}`),
+			data:     []byte(`{"title": "test", "content": ["test"]}`),
 			wantErr:  false,
 		},
 		{
@@ -158,17 +158,17 @@ func TestGomem_ReadFile(t *testing.T) {
 func TestGomem_WriteFile(t *testing.T) {
 	// reconsider
 	tests := []*struct {
-		in  gomemJSON
+		in  JSON
 		out string
 	}{
-		{in: gomemJSON{Title: "test", Content: []string{"test"}}},
-	}
-	for _, v := range tests {
-		v.out = fmt.Sprintf("{\n  \"title\": %q,\n  \"content\": %q\n}", v.in.Title, v.in.Content)
+		{
+			in:  JSON{Title: "test", Content: []string{"test"}},
+			out: fmt.Sprintf("{\n  \"title\": \"test\",\n  \"content\": [\n    \"test\"\n  ]\n}"),
+		},
 	}
 
 	for _, v := range tests {
-		g := &Gomem{base: tmpfile, JSON: v.in, Override: true}
+		g := &Gomem{base: tmpfile, J: v.in, Override: true}
 		if err := g.WriteFile(); err != nil {
 			t.Fatal(err)
 		}
@@ -177,32 +177,7 @@ func TestGomem_WriteFile(t *testing.T) {
 			t.Fatal(err)
 		}
 		if v.out != string(b) {
-			t.Errorf("writed:%q, but expected:%q", string(b), v.out)
+			t.Errorf("writed:\n\t%q\nbut expected:\n\t%q", string(b), v.out)
 		}
 	}
-}
-
-func TestGomemsNew(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(pwd)
-	// os.Chdir(to test directory)
-
-	// TODO: impl
-	_, err = GomemsNew()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestGomems_AddGomem(t *testing.T) {
-	//	t.Fatal()
-}
-func TestGomems_IncludeJSON(t *testing.T) {
-	//	t.Fatal()
-}
-func TestGomems_GetDir(t *testing.T) {
-	//	t.Fatal()
 }
