@@ -76,8 +76,8 @@ func la() (string, error) {
 	var str string
 	for key, v := range igs.Gmap {
 		str += color.GreenString("----- %s -----\n", key)
-		str += color.MagentaString("[ %s ]\n", v.JSON.Title)
-		str += color.CyanString("%s\n", v.JSON.Content)
+		str += color.MagentaString("[ %s ]\n", v.J.Title)
+		str += color.CyanString("%s\n", strings.Join(v.J.Content, "\n"))
 	}
 	return str, nil
 }
@@ -95,14 +95,19 @@ func state() (string, error) {
 	if err == nil {
 		for _, info := range infos {
 			if info.IsDir() {
-				str += color.HiGreenString("sub category:%s\n", info.Name())
+				str += color.HiGreenString("sub categories:%s\n", info.Name())
 			}
 		}
 	}
 	for key, v := range igs.Gmap {
 		str += color.GreenString("%s:", key)
-		str += color.MagentaString("[ %s ]:", v.JSON.Title)
-		str += color.RedString("read only %v", !v.Override)
+		str += color.MagentaString("[ %s ]:", v.J.Title)
+		str += fmt.Sprint("read only ")
+		if v.Override {
+			str += color.HiCyanString("%v\n", !v.Override)
+		} else {
+			str += color.RedString("%v\n", !v.Override)
+		}
 	}
 	return str, nil
 }
@@ -112,8 +117,21 @@ func show(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	str := color.MagentaString("[ %s ]\n", g.JSON.Title)
-	str += color.CyanString(g.JSON.Content)
+	return color.CyanString("%s\n", strings.Join(g.J.Content, "\n")), nil
+}
+func todo() (string, error) {
+	var str string
+	for key, g := range igs.Gmap {
+		if strings.HasPrefix(key, "todo"+string(filepath.Separator)) {
+			str += color.GreenString("%s:", key)
+			if strings.HasSuffix(g.J.Title, ":done") {
+				str += color.RedString("[ %s ]\n", g.J.Title)
+			} else {
+				str += color.MagentaString("[ %s ]\n", g.J.Title)
+			}
+			str += color.CyanString("\t%s\n", strings.Join(g.J.Content, "\n\t"))
+		}
+	}
 	return str, nil
 }
 
@@ -125,8 +143,8 @@ func newGomem() (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	g.JSON.Title = read(pretitle)
-	g.JSON.Content = read(precontent)
+	g.J.Title = read(pretitle)
+	g.J.Content = append(g.J.Content, read(precontent))
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
@@ -138,8 +156,8 @@ func newGomemWithName(s string) (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	g.JSON.Title = read(pretitle)
-	g.JSON.Content = read(precontent)
+	g.J.Title = read(pretitle)
+	g.J.Content = append(g.J.Content, read(precontent))
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
@@ -152,9 +170,10 @@ func include() (string, error) {
 	}
 	return "data cache reincluded: from " + igs.GetDir(), nil
 }
-// TODO: cd: maybe don't needs use
-//     : consider delete
 func cd() (string, error) {
+	// TODO: cd: maybe don't needs use
+	//     : consider delete
+
 	if !confirm("cd is dropped all data cache") {
 		return "", nil
 	}
@@ -179,10 +198,10 @@ func modContent(s string) (string, error) {
 		return "not found:" + s, nil
 	}
 	msg := color.GreenString("%s:", s) +
-		color.MagentaString("[ %s ]", g.JSON.Title) +
-		color.CyanString("%s\n", g.JSON.Content)
+		color.MagentaString("[ %s ]", g.J.Title) +
+		color.CyanString("%s\n", g.J.Content)
 	c := read(msg + "mod " + precontent)
-	g.JSON.Content = c
+	g.J.Content = append(g.J.Content, c)
 	return color.GreenString("content modified"), nil
 }
 func removeCache(s string) (string, error) {
@@ -195,21 +214,6 @@ func removeCache(s string) (string, error) {
 	}
 	delete(igs.Gmap, s)
 	return color.RedString("removed cache:" + s), nil
-}
-func todo() (string, error) {
-	var str string
-	for key, g := range igs.Gmap {
-		if strings.HasPrefix(key, "todo"+string(filepath.Separator)) {
-			str += color.GreenString("%s:", key)
-			if strings.HasSuffix(g.JSON.Title, ":done") {
-				str += color.RedString("[ %s ]\n", g.JSON.Title)
-			} else {
-				str += color.MagentaString("[ %s ]\n", g.JSON.Title)
-			}
-			str += color.CyanString("\t%s\n", strings.Replace(g.JSON.Content, "\n", "\n\t", -1))
-		}
-	}
-	return str, nil
 }
 
 // physical //
@@ -281,12 +285,12 @@ func createTodo(s string) (string, error) {
 	}
 	t := time.Now()
 	ts := fmt.Sprintf("%d %s %d %d:%d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
-	g.JSON.Title = fmt.Sprintf("<%s>:%s", ts, s)
-	g.JSON.Content = read(precontent)
+	g.J.Title = fmt.Sprintf("<%s>:%s", ts, s)
+	g.J.Content = append(g.J.Content, read(precontent))
 	igs.Gmap[s] = g
 	return "cache in:" + color.GreenString("%s:", s) +
-			color.MagentaString("[ %s ]:", g.JSON.Title) +
-			color.CyanString("%s", g.JSON.Content),
+			color.MagentaString("[ %s ]:", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
 		nil
 }
 func appendTodo(s string) (string, error) {
@@ -296,11 +300,11 @@ func appendTodo(s string) (string, error) {
 	if !ok {
 		return "not found:" + s, nil
 	}
-	g.JSON.Content = fmt.Sprintf("%s\n%s\n", g.JSON.Content, read("append "+precontent))
+	g.J.Content = append(g.J.Content, read("append "+precontent))
 	return "cache in:" +
 			color.GreenString("%s:", s) +
-			color.MagentaString("[ %s ]\n", g.JSON.Title) +
-			color.CyanString("%s", g.JSON.Content),
+			color.MagentaString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
 		nil
 }
 func done(s string) (string, error) {
@@ -310,13 +314,13 @@ func done(s string) (string, error) {
 	if !ok {
 		return "not found" + s, nil
 	}
-	if strings.HasSuffix(g.JSON.Title, ":done") {
+	if strings.HasSuffix(g.J.Title, ":done") {
 		return "already done:" + color.GreenString(s), nil
 	}
-	g.JSON.Title += ":done"
+	g.J.Title += ":done"
 	return color.GreenString("%s:", s) +
-			color.RedString("[ %s ]:", g.JSON.Title) +
-			color.CyanString("%s", g.JSON.Content),
+			color.RedString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
 		nil
 }
 func trim(s string) (string, error) {
@@ -326,24 +330,17 @@ func trim(s string) (string, error) {
 	if !ok {
 		return "not found" + s, nil
 	}
-	msg := color.CyanString("%s\n", g.JSON.Content)
-	trimIndex, err := strconv.Atoi(read(msg + "index :> "))
+	msg := color.CyanString("%s\n", strings.Join(g.J.Content, "\n"))
+	trimIndex, err := strconv.Atoi(read(msg + "line :> "))
 	if err != nil {
 		return err.Error(), nil
 	}
-	ss := strings.SplitAfter(g.JSON.Content, "\n")
-	if trimIndex < 0 || trimIndex > len(ss) {
+	if trimIndex <= 0 || trimIndex > len(g.J.Content) {
 		return "invalid line number:" + strconv.Itoa(trimIndex), nil
 	}
-	var str []string
-	for index, s := range ss {
-		if index == trimIndex {
-			continue
-		}
-		str = append(str, s)
-	}
-	g.JSON.Content = strings.Join(str, "")
-	return color.CyanString(g.JSON.Content), nil
+	trimIndex--
+	g.J.Content = append(g.J.Content[:trimIndex], g.J.Content[trimIndex+1:]...)
+	return color.CyanString("%s", strings.Join(g.J.Content, "\n")), nil
 }
 
 // interactive make interactive session

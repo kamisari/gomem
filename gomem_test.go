@@ -84,7 +84,7 @@ func TestNew(t *testing.T) {
 
 func TestGomem_IsValidFilePath(t *testing.T) {
 	dirname := filepath.Join(tmpdir, "dir.json")
-	if err := os.Mkdir(dirname, os.ModeDir | 0700); err != nil {
+	if err := os.Mkdir(dirname, os.ModeDir|0700); err != nil {
 		t.Fatal(err)
 	}
 	filename := tmpfile
@@ -157,11 +157,11 @@ func TestGomem_ReadFile(t *testing.T) {
 
 func TestGomem_WriteFile(t *testing.T) {
 	// reconsider
-	tests := []*struct{
-		in gomemJSON
+	tests := []*struct {
+		in  gomemJSON
 		out string
 	}{
-		{ in: gomemJSON{Title: "test", Content:"test"} },
+		{in: gomemJSON{Title: "test", Content: []string{"test"}}},
 	}
 	for _, v := range tests {
 		v.out = fmt.Sprintf("{\n  \"title\": %q,\n  \"content\": %q\n}", v.in.Title, v.in.Content)

@@ -10,14 +10,14 @@ import (
 	"strings"
 )
 
-type gomemJSON struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+type JSON struct {
+	Title   string   `json:"title"`
+	Content []string `json:"content"`
 }
 
 // Gomem JSON structure
 type Gomem struct {
-	JSON     gomemJSON
+	J        JSON
 	Override bool
 	base     string
 }
@@ -67,7 +67,7 @@ func (g *Gomem) ReadFile() error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(b, &g.JSON)
+	err = json.Unmarshal(b, &g.J)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (g *Gomem) WriteFile() error {
 	if _, err := os.Stat(g.base); err == nil && g.Override != true {
 		return ErrFileExists
 	}
-	b, err := json.MarshalIndent(g.JSON, "", "  ")
+	b, err := json.MarshalIndent(g.J, "", "  ")
 	if err != nil {
 		return err
 	}
