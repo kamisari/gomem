@@ -356,7 +356,7 @@ func trim(s string) (string, error) {
 }
 
 // interactive make interactive session
-func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, autoRuns []string, autoWrite bool) error {
+func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, autoRuns []string, callBacks []string) error {
 	if gs == nil || gs.Gmap == nil {
 		return fmt.Errorf("gs or gs.Gmap is nil, exit session")
 	}
@@ -364,10 +364,12 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 	interReader = r
 	interWriter = w
 
-	sub := gomem.SubNewWithBase(r, w)
+	sub := gomem.SubNew(r, w)
+	sub.Addf("exit", sub.Exit, "call exit")
+	sub.Addf(":q", sub.Exit, "exit alias")
+	sub.Addf("help", sub.Help, "show subcommands")
 	sub.Addf("la", la, "show gs.Gmap")
 	sub.Addf("ls", ls, "ls gs.Gmap keys")
-	sub.Addf(":q", gomem.Exit, "exit alias")
 	sub.Addf("state", state, "show state of gs")
 	sub.Addf("new", newGomem, "new gomem")
 	sub.Addf("write", write, "write all data to gs.dir")
@@ -394,16 +396,14 @@ func interactive(r io.Reader, w io.Writer, prefix string, gs *gomem.Gomems, auto
 			sub.InterCh <- s
 		}
 	}
-	if autoWrite {
-		sub.AddCallBack(func() {
-			result, err := write()
-			if err != nil {
-				panic(err)
-			}
-			fmt.Fprintln(interWriter, result)
-		})
+	if callBacks != nil {
+		sub.CallBackBuf = make(chan string, len(callBacks))
+		for _, s := range callBacks {
+			sub.CallBackBuf <- s
+		}
 	}
-	if err := sub.Repl(prefix); err != nil {
+	sub.Prefix = prefix
+	if err := sub.Repl(); err != nil {
 		return err
 	}
 	return nil

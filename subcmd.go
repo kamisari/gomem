@@ -16,11 +16,13 @@ type subcmd struct {
 
 // SubCommands interp functions for Repl
 type SubCommands struct {
-	r         io.Reader
-	w         io.Writer
-	Map       map[string]*subcmd
-	InterCh   chan string // accept another input
-	CallBacks []func()    // call at ErrValidExit
+	r           io.Reader
+	w           io.Writer
+	Map         map[string]*subcmd
+	Prefix      string
+	InterCh     chan string  // accept another input
+	callBackCh  *chan string // callBackCh = &CallBackBuf
+	CallBackBuf chan string
 }
 
 // ErrValidExit for valid exit, for Repl
@@ -30,15 +32,21 @@ var ErrValidExit = errors.New("valid exit")
 // call function in SubCommands[string]
 // string is from os.Stdin
 // if return ErrValidExit then return nil
-func (sub *SubCommands) Repl(prefix string) error {
+func (sub *SubCommands) Repl() error {
 	sc := bufio.NewScanner(sub.r)
+	done := false
 	for {
 		var s string
 		select {
-		case interStr := <-sub.InterCh:
-			s = strings.TrimSpace(interStr)
+		case inter := <-sub.InterCh:
+			s = strings.TrimSpace(inter)
+		case callback := <-*sub.callBackCh:
+			s = callback
 		default:
-			fmt.Fprint(sub.w, prefix)
+			if done {
+				return nil
+			}
+			fmt.Fprint(sub.w, sub.Prefix)
 			if !sc.Scan() {
 				return fmt.Errorf("fail sc.Scan")
 			}
@@ -46,18 +54,16 @@ func (sub *SubCommands) Repl(prefix string) error {
 				return sc.Err()
 			}
 			s = strings.TrimSpace(sc.Text())
-			if s == "" {
-				continue
-			}
 		}
+
+		var result string
+		var err error
 		cmdline := strings.SplitN(s, " ", 2)
 		cmd, ok := sub.Map[strings.TrimSpace(cmdline[0])]
 		if !ok {
-			fmt.Fprintf(sub.w, "invalid subcommand: %q\n", sc.Text())
+			fmt.Fprintf(sub.w, "invalid subcommand: %q\n", s)
 			continue
 		}
-		var result string
-		var err error
 		switch {
 		case cmd.fa != nil && len(cmdline) == 2:
 			result, err = cmd.fa(strings.TrimSpace(cmdline[1]))
@@ -70,8 +76,11 @@ func (sub *SubCommands) Repl(prefix string) error {
 		if err != nil {
 			switch err {
 			case ErrValidExit:
-				for _, f := range sub.CallBacks {
-					f()
+				if len(sub.CallBackBuf) != 0 {
+					// callback
+					sub.callBackCh = &sub.CallBackBuf
+					done = true
+					continue
 				}
 				fmt.Fprintln(sub.w, result) // exit message
 				return nil
@@ -113,30 +122,24 @@ func (sub *SubCommands) Addfa(key string, fnc func(string) (string, error), help
 	}
 }
 
-// AddCallBack after sub.Repl and ErrValidExit then call functions
-func (sub *SubCommands) AddCallBack(fnc func()) {
-	sub.CallBacks = append(sub.CallBacks, fnc)
-}
-
-// SubNewWithBase return SubCommands with base commands
-// for "exit" and "help"
-func SubNewWithBase(r io.Reader, w io.Writer) *SubCommands {
+// SubNew return SubCommands
+func SubNew(r io.Reader, w io.Writer) *SubCommands {
+	mock := make(chan string)
 	sub := &SubCommands{
-		r:         r,
-		w:         w,
-		Map:       make(map[string]*subcmd),
-		InterCh:   make(chan string, 1),
-		CallBacks: []func(){},
+		r:           r,
+		w:           w,
+		Map:         make(map[string]*subcmd),
+		InterCh:     make(chan string, 1),
+		CallBackBuf: make(chan string, 1),
+		callBackCh:  &mock,
 	}
-	sub.Addf("exit", Exit, "call exit")
-	sub.Addf("help", sub.Help, "show subcommands")
 	return sub
 }
 
 /// base commmands
 
 // Exit Base Commands for valid exit
-func Exit() (string, error) {
+func (sub *SubCommands) Exit() (string, error) {
 	return "", ErrValidExit
 }
 
