@@ -294,7 +294,7 @@ func makeSubcategory(s string) (string, error) {
 	return "maked subcategory:" + color.HiGreenString(subname), nil
 }
 func write() (string, error) {
-	b := confirm("write all cache in " + igs.GetDir())
+	b := confirm("write all cache in " + color.HiGreenString(igs.GetDir()))
 	var result string
 	if b {
 		for key, x := range igs.Gmap {
@@ -304,7 +304,7 @@ func write() (string, error) {
 		}
 		return result, nil
 	}
-	return "", nil
+	return "stop write", nil
 }
 func remove(s string) (string, error) {
 	path2json(&s)
