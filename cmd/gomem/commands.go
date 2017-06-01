@@ -138,7 +138,8 @@ func todo() (string, error) {
 // contact to cache //
 func newGomem() (string, error) {
 	// trim ..
-	fpath := path.Clean(read(prefname))
+	fpath := filepath.Join(igs.GetDir(), read(prefname))
+	path2json(&fpath)
 	g, err := gomem.New(fpath, true)
 	if err != nil {
 		return err.Error(), nil
@@ -148,10 +149,11 @@ func newGomem() (string, error) {
 	if err := igs.AddGomem(g); err != nil {
 		return err.Error(), nil
 	}
-	return "new gomem key:" + fpath, nil
+	return "new gomem key:" + color.GreenString(fpath), nil
 }
 func newGomemWithName(s string) (string, error) {
-	s = path.Clean(s)
+	s = filepath.Join(igs.GetDir(), path.Clean(s))
+	path2json(&s)
 	g, err := gomem.New(s, true)
 	if err != nil {
 		return err.Error(), nil
@@ -172,8 +174,7 @@ func include() (string, error) {
 }
 func cd() (string, error) {
 	// TODO: cd: maybe don't needs use
-	//     : consider delete
-
+	//     : consider delete cd()
 	if !confirm("cd is dropped all data cache") {
 		return "", nil
 	}

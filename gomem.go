@@ -21,7 +21,7 @@ type Gomem struct {
 	J        JSON
 	Override bool
 	// TODO: to fullpath
-	base     string
+	fullpath string
 }
 
 // Gomems map of Gomem and data directory
@@ -35,8 +35,8 @@ var ErrFileExists = errors.New("file exists, cannot override")
 
 // WritePerm if need then modify
 // This use *Gomem.WriteFile
-// Example: gomem.WritePerm = os.FileMode(0666)
-var WritePerm = os.FileMode(0600)
+// Example: gomem.WritePerm = os.FileMode(0600)
+var WritePerm = os.FileMode(0666)
 
 // New return *Gomem
 // fpath is modify to clean name
@@ -45,27 +45,30 @@ func New(fpath string, override bool) (*Gomem, error) {
 	if !strings.HasSuffix(fpath, ".json") {
 		return nil, fmt.Errorf("New: invalid filename:%s require filename is *.json", fpath)
 	}
-	return &Gomem{base: filepath.Clean(fpath), Override: override}, nil
+	if !filepath.IsAbs(fpath) {
+		return nil, fmt.Errorf("invalid filepath: %v is not fullpath", fpath)
+	}
+	return &Gomem{fullpath: fpath, Override: override}, nil
 }
 
 // IsValidFilePath if invalid then return error
 // verification file path
 // for *Gomem.WriteFile
 func (g *Gomem) IsValidFilePath() error {
-	if !strings.HasSuffix(g.base, ".json") {
-		return fmt.Errorf("*Gomem.IsValidFilePath:%s: require file name *.json", g.base)
+	if !strings.HasSuffix(g.fullpath, ".json") || !filepath.IsAbs(g.fullpath) {
+		return fmt.Errorf("*Gomem.IsValidFilePath:%s: require file name *.json and fullpath", g.fullpath)
 	}
-	if info, err := os.Stat(g.base); os.IsNotExist(err) {
+	if info, err := os.Stat(g.fullpath); os.IsNotExist(err) {
 		return nil
 	} else if err == nil && info.Mode().IsRegular() {
 		return nil
 	}
-	return fmt.Errorf("*Gomem.IsValidFilePath: invalid filename maybe is not regular files:%s", g.base)
+	return fmt.Errorf("*Gomem.IsValidFilePath: invalid filename maybe is not regular files:%s", g.fullpath)
 }
 
 // ReadFile load from g.base
 func (g *Gomem) ReadFile() error {
-	b, err := ioutil.ReadFile(g.base)
+	b, err := ioutil.ReadFile(g.fullpath)
 	if err != nil {
 		return err
 	}
@@ -82,14 +85,14 @@ func (g *Gomem) WriteFile() error {
 		return err
 	}
 	// reconsider dupl check
-	if _, err := os.Stat(g.base); err == nil && g.Override != true {
+	if _, err := os.Stat(g.fullpath); err == nil && g.Override != true {
 		return ErrFileExists
 	}
 	b, err := json.MarshalIndent(g.J, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(g.base, b, WritePerm); err != nil {
+	if err := ioutil.WriteFile(g.fullpath, b, WritePerm); err != nil {
 		return err
 	}
 	return nil
@@ -113,10 +116,14 @@ func GomemsNew() (*Gomems, error) {
 
 // AddGomem add to gs.Gmap
 func (gs *Gomems) AddGomem(g *Gomem) error {
-	if _, ok := gs.Gmap[g.base]; ok {
-		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap[%s] is exists", g.base)
+	key, err := filepath.Rel(gs.dir, g.fullpath)
+	if err != nil {
+		return err
 	}
-	gs.Gmap[g.base] = g
+	if _, ok := gs.Gmap[key]; ok {
+		return fmt.Errorf("*Gomems.AddGomem: gs.Gmap[%s] is exists", key)
+	}
+	gs.Gmap[key] = g
 	return nil
 }
 
@@ -124,7 +131,7 @@ func (gs *Gomems) AddGomem(g *Gomem) error {
 func (gs *Gomems) GetAbs(key string) (string, error) {
 	g, ok := gs.Gmap[key]
 	if ok {
-		return filepath.Join(gs.dir, g.base), nil
+		return g.fullpath, nil
 	}
 	return "", fmt.Errorf("not found gs.Gmap[%s]", key)
 }
@@ -135,32 +142,38 @@ func (gs *Gomems) IncludeJSON() error {
 	if gs.Gmap == nil {
 		return fmt.Errorf("*Gomems.IncludeJSON: Gmap is nil")
 	}
-	var bases []string
-	var pushBases func(string) error
-	pushBases = func(root string) error {
+
+	var fullpaths []string
+	var pushPaths func(string) error
+	pushPaths = func(root string) error {
 		infos, err := ioutil.ReadDir(root)
 		if err != nil {
 			return err
 		}
 		for _, info := range infos {
 			if info.IsDir() {
-				return pushBases(filepath.Join(gs.dir, info.Name()))
+				return pushPaths(filepath.Join(root, info.Name()))
 			}
 			if info.Mode().IsRegular() && strings.HasSuffix(info.Name(), ".json") {
-				path, err := filepath.Rel(gs.dir, filepath.Join(root, info.Name()))
 				if err == nil {
-					bases = append(bases, path)
+					fullpaths = append(fullpaths, filepath.Join(root, info.Name()))
 				}
 			}
 		}
 		return nil
 	}
-	err := pushBases(gs.dir)
+	err := pushPaths(gs.dir)
 	if err != nil {
 		return err
 	}
-	for _, x := range bases {
-		if g, ok := gs.Gmap[x]; ok {
+
+	for _, x := range fullpaths {
+		key, err := filepath.Rel(gs.dir, x)
+		if err != nil {
+			// TODO: to continue?
+			return err
+		}
+		if g, ok := gs.Gmap[key]; ok {
 			if err := g.ReadFile(); err != nil {
 				return err
 			}
@@ -170,7 +183,7 @@ func (gs *Gomems) IncludeJSON() error {
 		if err != nil {
 			return err
 		}
-		gs.Gmap[x] = g
+		gs.Gmap[key] = g
 		if err := g.ReadFile(); err != nil {
 			return err
 		}
