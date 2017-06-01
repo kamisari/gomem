@@ -115,7 +115,7 @@ func show(s string) (string, error) {
 	path2json(&s)
 	g, ok := igs.Gmap[s]
 	if !ok {
-		return "not found:" + s, nil
+		return "not found:" + color.GreenString(s), nil
 	}
 	return color.CyanString("%s\n", strings.Join(g.J.Content, "\n")), nil
 }
@@ -170,7 +170,7 @@ func include() (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	return "data cache reincluded: from " + igs.GetDir(), nil
+	return "data cache reincluded: from " + color.HiGreenString(igs.GetDir()), nil
 }
 func cd() (string, error) {
 	// TODO: cd: maybe don't needs use
@@ -179,11 +179,17 @@ func cd() (string, error) {
 		return "", nil
 	}
 	pwd := igs.GetDir()
-	if err := os.Chdir(read("cd category:>")); err != nil {
+	dir, err := filepath.Abs(filepath.Join(pwd, read("cd category:>")))
+	if err != nil {
 		return err.Error(), nil
 	}
-	tmpgs, err := gomem.GomemsNew()
+	// reconsider: needs it?
+	if err := os.Chdir(dir); err != nil {
+		return err.Error(), nil
+	}
+	tmpgs, err := gomem.GomemsNew(dir)
 	if err != nil {
+		// reconsider: needs it?
 		if err := os.Chdir(pwd); err != nil {
 			return err.Error(), nil
 		}
@@ -209,7 +215,7 @@ func toggleReadonly(s string) (string, error) {
 	path2json(&s)
 	g, ok := igs.Gmap[s]
 	if !ok {
-		return "not found" + s, nil
+		return "not found" + color.GreenString(s), nil
 	}
 	g.Override = !g.Override
 	str := color.GreenString("key:%s", s)
@@ -219,13 +225,63 @@ func toggleReadonly(s string) (string, error) {
 func removeCache(s string) (string, error) {
 	path2json(&s)
 	if _, ok := igs.Gmap[s]; !ok {
-		return "not found:" + s, nil
+		return "not found:" + color.GreenString(s), nil
 	}
 	if confirm("remove cache:"+s) == false {
 		return "", nil
 	}
 	delete(igs.Gmap, s)
 	return color.RedString("removed cache:" + s), nil
+}
+func appendTodo(s string) (string, error) {
+	path2json(&s)
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found:" + color.GreenString(s), nil
+	}
+	g.J.Content = append(g.J.Content, read("append "+precontent))
+	g.J.Title = strings.TrimSuffix(g.J.Title, ":done")
+	return "cache in:" +
+			color.GreenString("%s:", s) +
+			color.MagentaString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
+		nil
+}
+func done(s string) (string, error) {
+	path2json(&s)
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found " + s, nil
+	}
+	if strings.HasSuffix(g.J.Title, ":done") {
+		return "already done:" + color.GreenString(s), nil
+	}
+	g.J.Title += ":done"
+	return color.GreenString("%s:", s) +
+			color.RedString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
+		nil
+}
+func trim(s string) (string, error) {
+	path2json(&s)
+	s = filepath.Join("todo", s)
+	g, ok := igs.Gmap[s]
+	if !ok {
+		return "not found" + color.GreenString(s), nil
+	}
+	msg := color.CyanString("%s\n", strings.Join(g.J.Content, "\n"))
+	trimIndex, err := strconv.Atoi(read(msg + "line :> "))
+	if err != nil {
+		return err.Error(), nil
+	}
+	if trimIndex <= 0 || trimIndex > len(g.J.Content) {
+		return "invalid line number:" + strconv.Itoa(trimIndex), nil
+	}
+	trimIndex--
+	g.J.Content = append(g.J.Content[:trimIndex], g.J.Content[trimIndex+1:]...)
+	return color.CyanString("%s", strings.Join(g.J.Content, "\n")), nil
 }
 
 // physical //
@@ -235,7 +291,7 @@ func makeSubcategory(s string) (string, error) {
 	if err != nil {
 		return err.Error(), nil
 	}
-	return "maked subcategory:" + subname, nil
+	return "maked subcategory:" + color.HiGreenString(subname), nil
 }
 func write() (string, error) {
 	b := confirm("write all cache in " + igs.GetDir())
@@ -273,7 +329,7 @@ func removeSubcategory(s string) (string, error) {
 		return err.Error(), nil
 	}
 	if !info.IsDir() {
-		return "invalid category:" + s, nil
+		return "invalid category:" + color.HiGreenString(s), nil
 	}
 	if !confirm("remove all files in " + subname) {
 		return "", nil
@@ -304,56 +360,6 @@ func createTodo(s string) (string, error) {
 			color.MagentaString("[ %s ]:", g.J.Title) +
 			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
 		nil
-}
-func appendTodo(s string) (string, error) {
-	path2json(&s)
-	s = filepath.Join("todo", s)
-	g, ok := igs.Gmap[s]
-	if !ok {
-		return "not found:" + s, nil
-	}
-	g.J.Content = append(g.J.Content, read("append "+precontent))
-	g.J.Title = strings.TrimSuffix(g.J.Title, ":done")
-	return "cache in:" +
-			color.GreenString("%s:", s) +
-			color.MagentaString("[ %s ]\n", g.J.Title) +
-			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
-		nil
-}
-func done(s string) (string, error) {
-	path2json(&s)
-	s = filepath.Join("todo", s)
-	g, ok := igs.Gmap[s]
-	if !ok {
-		return "not found" + s, nil
-	}
-	if strings.HasSuffix(g.J.Title, ":done") {
-		return "already done:" + color.GreenString(s), nil
-	}
-	g.J.Title += ":done"
-	return color.GreenString("%s:", s) +
-			color.RedString("[ %s ]\n", g.J.Title) +
-			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
-		nil
-}
-func trim(s string) (string, error) {
-	path2json(&s)
-	s = filepath.Join("todo", s)
-	g, ok := igs.Gmap[s]
-	if !ok {
-		return "not found" + s, nil
-	}
-	msg := color.CyanString("%s\n", strings.Join(g.J.Content, "\n"))
-	trimIndex, err := strconv.Atoi(read(msg + "line :> "))
-	if err != nil {
-		return err.Error(), nil
-	}
-	if trimIndex <= 0 || trimIndex > len(g.J.Content) {
-		return "invalid line number:" + strconv.Itoa(trimIndex), nil
-	}
-	trimIndex--
-	g.J.Content = append(g.J.Content[:trimIndex], g.J.Content[trimIndex+1:]...)
-	return color.CyanString("%s", strings.Join(g.J.Content, "\n")), nil
 }
 
 // interactive make interactive session

@@ -20,14 +20,13 @@ type JSON struct {
 type Gomem struct {
 	J        JSON
 	Override bool
-	// TODO: to fullpath
 	fullpath string
 }
 
 // Gomems map of Gomem and data directory
 type Gomems struct {
-	Gmap map[string]*Gomem // key: filepath
-	dir  string            // reconsider export
+	Gmap map[string]*Gomem // key: filepath.Rel(Gomems.dir, Gomem.fullpath)
+	dir  string
 }
 
 // ErrFileExists exists error
@@ -39,7 +38,7 @@ var ErrFileExists = errors.New("file exists, cannot override")
 var WritePerm = os.FileMode(0666)
 
 // New return *Gomem
-// fpath is modify to clean name
+// if fpath is not Abs then return error
 // accepted filename is "*.json" only
 func New(fpath string, override bool) (*Gomem, error) {
 	if !strings.HasSuffix(fpath, ".json") {
@@ -66,7 +65,7 @@ func (g *Gomem) IsValidFilePath() error {
 	return fmt.Errorf("*Gomem.IsValidFilePath: invalid filename maybe is not regular files:%s", g.fullpath)
 }
 
-// ReadFile load from g.base
+// ReadFile load from g.fullpath
 func (g *Gomem) ReadFile() error {
 	b, err := ioutil.ReadFile(g.fullpath)
 	if err != nil {
@@ -79,7 +78,7 @@ func (g *Gomem) ReadFile() error {
 	return nil
 }
 
-// WriteFile write to g.base
+// WriteFile write to g.fullpath
 func (g *Gomem) WriteFile() error {
 	if err := g.IsValidFilePath(); err != nil {
 		return err
@@ -99,14 +98,13 @@ func (g *Gomem) WriteFile() error {
 }
 
 // GomemsNew read from pwd return map for Gomem
-func GomemsNew() (*Gomems, error) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
+func GomemsNew(dir string) (*Gomems, error) {
+	if !filepath.IsAbs(dir) {
+		return nil, fmt.Errorf("GomemsNew: invalid direcotry path %s", dir)
 	}
 	gs := &Gomems{
 		Gmap: make(map[string]*Gomem),
-		dir:  pwd,
+		dir:  dir,
 	}
 	if err := gs.IncludeJSON(); err != nil {
 		return nil, err

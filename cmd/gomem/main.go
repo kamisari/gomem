@@ -34,7 +34,11 @@ func (opt *option) getAutoRunList() []string {
 		if err != nil {
 			return nil
 		}
-		list = append(list, strings.Fields(string(b))...)
+		for _, s := range strings.Fields(string(b)) {
+			if strings.HasPrefix(s, "autocmd=") {
+				list = append(list, strings.TrimPrefix(s, "autocmd="))
+			}
+		}
 	}
 	if opt.autocmd != "" {
 		list = append(list, strings.Fields(opt.autocmd)...)
@@ -87,16 +91,17 @@ func main() {
 	if err := opt.init(); err != nil {
 		log.Fatal(err)
 	}
+	// reconsider: needs it?
 	if err := os.Chdir(opt.workdir); err != nil {
 		log.Fatal(err)
 	}
 
-	gs, err := gomem.GomemsNew()
+	gs, err := gomem.GomemsNew(opt.workdir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("autorun:", opt.getAutoRunList())
+	log.Println("autocmd:", opt.getAutoRunList())
 	err = interactive(os.Stdin, os.Stdout, "gomem:> ", gs, opt.getAutoRunList(), opt.getCallbacks())
 	if err != nil {
 		log.Fatal(err)

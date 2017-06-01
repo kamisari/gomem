@@ -67,7 +67,7 @@ func (sub *SubCommands) Repl() error {
 		switch {
 		case cmd.fa != nil && len(cmdline) == 2:
 			result, err = cmd.fa(strings.TrimSpace(cmdline[1]))
-		case cmd.f != nil:
+		case cmd.f != nil && len(cmdline) == 1:
 			result, err = cmd.f()
 		default:
 			fmt.Fprintf(sub.w, "invalid subcommand: argument: %q\n", cmdline)
