@@ -129,7 +129,7 @@ func todo() (string, error) {
 			} else {
 				str += color.MagentaString("[ %s ]\n", g.J.Title)
 			}
-			str += color.CyanString("\t%s\n", strings.Join(g.J.Content, "\n\t"))
+			str += color.CyanString("\t%s\n\n", strings.Join(g.J.Content, "\n\t"))
 		}
 	}
 	return str, nil
@@ -346,7 +346,7 @@ func createTodo(s string) (string, error) {
 	g, ok := igs.Gmap[s]
 	if !ok {
 		var err error
-		g, err = gomem.New(s, true)
+		g, err = gomem.New(filepath.Join(igs.GetDir(), s), true)
 		if err != nil {
 			return err.Error(), nil
 		}
