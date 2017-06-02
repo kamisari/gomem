@@ -271,7 +271,10 @@ func trim(s string) (string, error) {
 	if !ok {
 		return "not found" + color.GreenString(s), nil
 	}
-	msg := color.CyanString("%s\n", strings.Join(g.J.Content, "\n"))
+	var msg string
+	for i, s := range g.J.Content {
+		msg += fmt.Sprintf("%d: %s\n", i+1, color.CyanString(s))
+	}
 	trimIndex, err := strconv.Atoi(read(msg + "line :> "))
 	if err != nil {
 		return err.Error(), nil
