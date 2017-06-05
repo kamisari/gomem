@@ -359,9 +359,9 @@ func createTodo(s string) (string, error) {
 	g.J.Title = fmt.Sprintf("<%s>:%s", ts, s)
 	g.J.Content = append(g.J.Content, read(precontent))
 	igs.Gmap[s] = g
-	return "cache in:" + color.GreenString("%s:", s) +
-			color.MagentaString("[ %s ]:", g.J.Title) +
-			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
+	return "cache in:" + color.GreenString("%s\n", s) +
+			color.MagentaString("[ %s ]", g.J.Title) +
+			color.CyanString("\n\t%s", strings.Join(g.J.Content, "\n\t")),
 		nil
 }
 
