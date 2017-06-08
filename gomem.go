@@ -72,10 +72,7 @@ func (g *Gomem) ReadFile() error {
 		return err
 	}
 	err = json.Unmarshal(b, &g.J)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // WriteFile write to g.fullpath
