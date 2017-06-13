@@ -121,8 +121,12 @@ func show(s string) (string, error) {
 }
 func todo() (string, error) {
 	var str string
+	var done string
 	for key, g := range igs.Gmap {
 		if strings.HasSuffix(g.J.Title, ":done") {
+			done += color.GreenString("%s:", key)
+			done += color.RedString("[ %s ]\n", g.J.Title)
+			done += color.CyanString("\t%s\n\n", strings.Join(g.J.Content, "\n\t"))
 			continue
 		}
 		if strings.HasPrefix(key, "todo"+string(filepath.Separator)) {
@@ -131,7 +135,7 @@ func todo() (string, error) {
 			str += color.CyanString("\t%s\n\n", strings.Join(g.J.Content, "\n\t"))
 		}
 	}
-	return str, nil
+	return done+str, nil
 }
 
 // contact to cache //
