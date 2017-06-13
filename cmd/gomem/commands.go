@@ -122,13 +122,12 @@ func show(s string) (string, error) {
 func todo() (string, error) {
 	var str string
 	for key, g := range igs.Gmap {
+		if strings.HasSuffix(g.J.Title, ":done") {
+			continue
+		}
 		if strings.HasPrefix(key, "todo"+string(filepath.Separator)) {
 			str += color.GreenString("%s:", key)
-			if strings.HasSuffix(g.J.Title, ":done") {
-				str += color.RedString("[ %s ]\n", g.J.Title)
-			} else {
-				str += color.MagentaString("[ %s ]\n", g.J.Title)
-			}
+			str += color.MagentaString("[ %s ]\n", g.J.Title)
 			str += color.CyanString("\t%s\n\n", strings.Join(g.J.Content, "\n\t"))
 		}
 	}
@@ -259,9 +258,9 @@ func done(s string) (string, error) {
 		return "already done:" + color.GreenString(s), nil
 	}
 	g.J.Title += ":done"
+	g.J.Content = []string{}
 	return color.GreenString("%s:", s) +
-			color.RedString("[ %s ]\n", g.J.Title) +
-			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
+			color.RedString("[ %s ]", g.J.Title),
 		nil
 }
 func trim(s string) (string, error) {
