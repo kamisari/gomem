@@ -135,7 +135,7 @@ func todo() (string, error) {
 			str += color.CyanString("\t%s\n\n", strings.Join(g.J.Content, "\n\t"))
 		}
 	}
-	return done+str, nil
+	return done + str, nil
 }
 
 // contact to cache //
@@ -262,9 +262,9 @@ func done(s string) (string, error) {
 		return "already done:" + color.GreenString(s), nil
 	}
 	g.J.Title += ":done"
-	g.J.Content = []string{}
 	return color.GreenString("%s:", s) +
-			color.RedString("[ %s ]", g.J.Title),
+			color.RedString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s\n", strings.Join(g.J.Content, "\n")),
 		nil
 }
 func trim(s string) (string, error) {
@@ -349,13 +349,9 @@ func removeSubcategory(s string) (string, error) {
 func createTodo(s string) (string, error) {
 	path2json(&s)
 	s = filepath.Join("todo", s)
-	g, ok := igs.Gmap[s]
-	if !ok {
-		var err error
-		g, err = gomem.New(filepath.Join(igs.GetDir(), s), true)
-		if err != nil {
-			return err.Error(), nil
-		}
+	g, err := gomem.New(filepath.Join(igs.GetDir(), s), true)
+	if err != nil {
+		return err.Error(), nil
 	}
 	t := time.Now()
 	ts := fmt.Sprintf("%d %s %d %d:%d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
@@ -363,8 +359,8 @@ func createTodo(s string) (string, error) {
 	g.J.Content = append(g.J.Content, read(precontent))
 	igs.Gmap[s] = g
 	return "cache in:" + color.GreenString("%s\n", s) +
-			color.MagentaString("[ %s ]", g.J.Title) +
-			color.CyanString("\n\t%s", strings.Join(g.J.Content, "\n\t")),
+			color.MagentaString("[ %s ]\n", g.J.Title) +
+			color.CyanString("%s", strings.Join(g.J.Content, "\n")),
 		nil
 }
 
